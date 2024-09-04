@@ -53,6 +53,8 @@
 }
 
 - (void)_terminate {
+  [_ipc close];
+
   [_worklet terminate];
 }
 
