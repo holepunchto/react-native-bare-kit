@@ -1,0 +1,40 @@
+{
+  "name": "react-native-bare-kit",
+  "version": "0.1.0",
+  "description": "Bare Kit for React Native",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    }
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "*.podspec",
+    "android",
+    "ios"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/holepunchto/react-native-bare-kit.git"
+  },
+  "author": "Holepunch",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/holepunchto/react-native-bare-kit/issues"
+  },
+  "homepage": "https://github.com/holepunchto/react-native-bare-kit#readme",
+  "dependencies": {
+    "b4a": "^1.6.6",
+    "bare-rpc": "^0.1.1",
+    "bare-stream": "^2.2.1"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-native": "*"
+  },
+  "devDependencies": {
+    "standard": "^17.1.0"
+  }
+}
