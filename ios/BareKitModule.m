@@ -6,20 +6,20 @@
 
 @implementation BareKitModuleWorklet {
 @public
-  NSUInteger _id;
+  NSNumber *_id;
   BareKitModule *_module;
   BareWorklet *_worklet;
   BareIPC *_ipc;
 }
 
 - (_Nullable instancetype)initWithModule:(BareKitModule *)module
-                                      id:(NSUInteger)id
                                 filename:(NSString *)filename
                                   source:(NSString *)source {
   self = [super init];
 
   if (self) {
-    _id = id;
+    _id = @((uintptr_t) self);
+
     _module = module;
 
     _worklet = [[BareWorklet alloc] init];
@@ -40,7 +40,7 @@
 
     [self->_module sendEventWithName:@"BareKitIPCData"
                                 body:@{
-                                  @"worklet" : @(self->_id),
+                                  @"worklet" : self->_id,
                                   @"data" : [data base64EncodedStringWithOptions:0],
                                 }];
 
@@ -48,10 +48,18 @@
   }];
 }
 
+- (void)_write:(NSString *)data {
+  [_ipc write:[[NSData alloc] initWithBase64EncodedString:data options:0]];
+}
+
+- (void)_terminate {
+  [_worklet terminate];
+}
+
 @end
 
 @implementation BareKitModule {
-  NSMutableArray<BareKitModuleWorklet *> *_worklets;
+  NSMutableDictionary<NSNumber *, BareKitModuleWorklet *> *_worklets;
 }
 
 RCT_EXPORT_MODULE(BareKit)
@@ -60,10 +68,20 @@ RCT_EXPORT_MODULE(BareKit)
   self = [super init];
 
   if (self) {
-    _worklets = [[NSMutableArray alloc] init];
+    _worklets = [[NSMutableDictionary alloc] init];
   }
 
   return self;
+}
+
+- (void)invalidate {
+  [super invalidate];
+
+  for (BareKitModuleWorklet *worklet in _worklets) {
+    [worklet _terminate];
+  }
+
+  [_worklets removeAllObjects];
 }
 
 - (NSArray<NSString *> *)supportedEvents {
@@ -74,25 +92,38 @@ RCT_EXPORT_METHOD(start : (NSString *) filename
                   source : (NSString *) source
                   resolve : (RCTPromiseResolveBlock) resolve
                   reject : (RCTPromiseRejectBlock) reject) {
-  NSUInteger id = _worklets.count;
+  BareKitModuleWorklet *worklet = [[BareKitModuleWorklet alloc] initWithModule:self
+                                                                      filename:filename
+                                                                        source:source];
 
-  [_worklets addObject:[[BareKitModuleWorklet alloc] initWithModule:self
-                                                                 id:id
-                                                           filename:filename
-                                                             source:source]];
+  _worklets[worklet->_id] = worklet;
 
-  resolve(@(id));
+  resolve(worklet->_id);
 }
 
 RCT_EXPORT_METHOD(write : (nonnull NSNumber *) id
                   data : (NSString *) data
                   resolve : (RCTPromiseResolveBlock) resolve
                   reject : (RCTPromiseRejectBlock) reject) {
-  BareKitModuleWorklet *worklet = _worklets[id.unsignedIntegerValue];
+  BareKitModuleWorklet *worklet = _worklets[id];
 
   if (worklet == nil) return reject(@"INVALID_ID", @"No such worklet found", nil);
 
-  [worklet->_ipc write:[[NSData alloc] initWithBase64EncodedString:data options:0]];
+  [worklet _write:data];
+
+  resolve(nil);
+}
+
+RCT_EXPORT_METHOD(terminate : (nonnull NSNumber *) id
+                  resolve : (RCTPromiseResolveBlock) resolve
+                  reject : (RCTPromiseRejectBlock) reject) {
+  BareKitModuleWorklet *worklet = _worklets[id];
+
+  if (worklet == nil) return reject(@"INVALID_ID", @"No such worklet found", nil);
+
+  [worklet _terminate];
+
+  [_worklets removeObjectForKey:id];
 
   resolve(nil);
 }

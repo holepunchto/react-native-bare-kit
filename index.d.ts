@@ -5,4 +5,5 @@ export class Worklet {
   constructor()
 
   start(filename: string, source: string): Promise<void>
+  terminate(): Promise<void>
 }

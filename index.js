@@ -76,6 +76,14 @@ const Worklet = exports.Worklet = class BareKitWorklet {
     }
   }
 
+  async terminate () {
+    try {
+      await NativeModules.BareKit.terminate(this._id)
+    } finally {
+      this._id = -1
+    }
+  }
+
   toJSON () {
     return {}
   }
