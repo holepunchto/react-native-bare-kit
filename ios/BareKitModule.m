@@ -24,7 +24,7 @@
 
     _worklet = [[BareWorklet alloc] init];
 
-    [_worklet start:filename source:[source dataUsingEncoding:NSUTF8StringEncoding]];
+    [_worklet start:filename source:source encoding:NSUTF8StringEncoding];
 
     _ipc = [[BareIPC alloc] initWithWorklet:_worklet];
 
