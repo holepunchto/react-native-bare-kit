@@ -114,7 +114,6 @@ public class BareKitModule extends BaseJavaModule implements NativeModule {
     void
     read () {
       ipc.read((data, error) -> {
-        if (error != null) return;
         if (data == null) return;
 
         WritableMap params = Arguments.createMap();
