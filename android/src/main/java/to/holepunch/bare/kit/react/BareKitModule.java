@@ -34,6 +34,22 @@ public class BareKitModule extends BaseJavaModule implements NativeModule {
     return "BareKit";
   }
 
+  @Override
+  public void
+  invalidate () {
+    super.invalidate();
+
+    for (BareKitModuleWorklet worklet : worklets.values()) {
+      try {
+        worklet.terminate();
+      } catch (IOException e) {
+        continue;
+      }
+    }
+
+    worklets.clear();
+  }
+
   private void
   sendEvent (String event, WritableMap params) {
     getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).emit(event, params);
