@@ -23,7 +23,7 @@ target_sources(
 link_bare_modules(
   bare_kit_addons
   PREBUILDS
-  DESTINATION "${CMAKE_CURRENT_LIST_DIR}/src/main/jniLibs/${ANDROID_ABI}"
+  DESTINATION "${CMAKE_CURRENT_LIST_DIR}/src/main/addons/${ANDROID_ABI}"
   WORKING_DIRECTORY ../../..
 )
 

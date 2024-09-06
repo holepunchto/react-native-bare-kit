@@ -30,6 +30,7 @@ android {
   sourceSets {
     main {
       manifest.srcFile "src/main/AndroidManifest.xml"
+      jniLibs.srcDirs "src/main/addons"
     }
   }
 
