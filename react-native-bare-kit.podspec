@@ -15,7 +15,9 @@ Pod::Spec.new do |s|
 
   s.source_files = "ios/**/*.{h,m}"
 
-  s.vendored_frameworks = "ios/Frameworks/BareKit.xcframework"
+  s.prepare_command = "node ios/prepare"
+
+  s.vendored_frameworks = "ios/*.xcframework", "ios/addons/*.xcframework"
 
   install_modules_dependencies(s)
 end
