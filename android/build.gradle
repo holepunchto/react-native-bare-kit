@@ -62,8 +62,8 @@ repositories {
 }
 
 dependencies {
-  implementation "com.facebook.react:react-native:+"
   implementation fileTree(dir: "libs", include: ["*.aar"])
-  implementation files("libs/bare-kit.aar")
+
+  implementation "com.facebook.react:react-native:+"
 }
 
