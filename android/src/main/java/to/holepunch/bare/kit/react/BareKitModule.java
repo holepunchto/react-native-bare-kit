@@ -95,6 +95,30 @@ public class BareKitModule extends BaseJavaModule implements NativeModule {
 
   @ReactMethod
   public void
+  suspend (double id, double linger, Promise promise) {
+    BareKitModuleWorklet worklet = worklets.get((int) id);
+
+    if (worklet == null) {
+      promise.reject("INVALID_ID", new Error("No such worklet found"));
+    } else {
+      worklet.suspend((int) linger);
+    }
+  }
+
+  @ReactMethod
+  public void
+  resume (double id, Promise promise) {
+    BareKitModuleWorklet worklet = worklets.get((int) id);
+
+    if (worklet == null) {
+      promise.reject("INVALID_ID", new Error("No such worklet found"));
+    } else {
+      worklet.resume();
+    }
+  }
+
+  @ReactMethod
+  public void
   terminate (double id, Promise promise) {
     BareKitModuleWorklet worklet = worklets.get((int) id);
 
@@ -153,6 +177,16 @@ public class BareKitModule extends BaseJavaModule implements NativeModule {
     void
     write (String data) {
       ipc.write(ByteBuffer.wrap(Base64.getDecoder().decode(data)));
+    }
+
+    void
+    suspend (int linger) {
+      worklet.suspend(linger);
+    }
+
+    void
+    resume () {
+      worklet.resume();
     }
 
     void

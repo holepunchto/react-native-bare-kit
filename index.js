@@ -76,6 +76,14 @@ const Worklet = exports.Worklet = class BareKitWorklet {
     }
   }
 
+  async suspend (linger = 0) {
+    await NativeModules.BareKit.suspend(this._id, linger)
+  }
+
+  async resume () {
+    await NativeModules.BareKit.resume(this._id)
+  }
+
   async terminate () {
     try {
       await NativeModules.BareKit.terminate(this._id)

@@ -52,6 +52,14 @@
   [_ipc write:[[NSData alloc] initWithBase64EncodedString:data options:0]];
 }
 
+- (void)_suspend:(NSNumber *)linger {
+  [_worklet suspendWithLinger:linger.intValue];
+}
+
+- (void)_resume {
+  [_worklet resume];
+}
+
 - (void)_terminate {
   [_ipc close];
 
@@ -112,6 +120,31 @@ RCT_EXPORT_METHOD(write : (nonnull NSNumber *) id
   if (worklet == nil) return reject(@"INVALID_ID", @"No such worklet found", nil);
 
   [worklet _write:data];
+
+  resolve(nil);
+}
+
+RCT_EXPORT_METHOD(suspend : (nonnull NSNumber *) id
+                  linger : (nonnull NSNumber *) linger
+                  resolve : (RCTPromiseResolveBlock) resolve
+                  reject : (RCTPromiseRejectBlock) reject) {
+  BareKitModuleWorklet *worklet = _worklets[id];
+
+  if (worklet == nil) return reject(@"INVALID_ID", @"No such worklet found", nil);
+
+  [worklet _suspend:linger];
+
+  resolve(nil);
+}
+
+RCT_EXPORT_METHOD(resume : (nonnull NSNumber *) id
+                  resolve : (RCTPromiseResolveBlock) resolve
+                  reject : (RCTPromiseRejectBlock) reject) {
+  BareKitModuleWorklet *worklet = _worklets[id];
+
+  if (worklet == nil) return reject(@"INVALID_ID", @"No such worklet found", nil);
+
+  [worklet _resume];
 
   resolve(nil);
 }
