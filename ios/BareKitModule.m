@@ -87,8 +87,8 @@ RCT_EXPORT_MODULE(BareKit)
 - (void)invalidate {
   [super invalidate];
 
-  for (BareKitModuleWorklet *worklet in _worklets) {
-    [worklet _terminate];
+  for (NSNumber *id in _worklets) {
+    [_worklet[id] _terminate];
   }
 
   [_worklets removeAllObjects];
