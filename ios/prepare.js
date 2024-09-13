@@ -90,7 +90,7 @@ function plist (name, version) {
   <key>CFBundleIconFile</key>
   <string></string>
   <key>CFBundleIdentifier</key>
-  <string>${name}</string>
+  <string>${name}-${version}</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundlePackageType</key>
