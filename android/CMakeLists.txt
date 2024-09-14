@@ -20,11 +20,23 @@ target_sources(
     src/main/c/addons.c
 )
 
+set(addons "${CMAKE_CURRENT_LIST_DIR}/src/main/addons/${ANDROID_ABI}")
+
+file(REMOVE_RECURSE ${addons})
+
 link_bare_modules(
   bare_kit_addons
   PREBUILDS
-  DESTINATION "${CMAKE_CURRENT_LIST_DIR}/src/main/addons/${ANDROID_ABI}"
+  DESTINATION ${addons}
   WORKING_DIRECTORY ../../..
+)
+
+set_property(
+  DIRECTORY
+  APPEND
+  PROPERTY CMAKE_CONFIGURE_DEPENDS
+    ../../../package-lock.json
+    ../../../yarn.lock
 )
 
 find_package(bare-kit REQUIRED CONFIG)
