@@ -4,6 +4,8 @@ const { spawnSync } = require('child_process')
 
 const modules = path.join(__dirname, '..', '..', '..', 'node_modules')
 
+fs.rmSync(path.join(__dirname, 'addons'), { recursive: true, force: true })
+
 for (const base of fs.readdirSync(modules)) {
   const cwd = path.join(modules, base)
 
