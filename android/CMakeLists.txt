@@ -1,9 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
-
-include(bare)
-
 project(react_native_bare_kit C)
 
 add_library(bare_kit_addons SHARED)
@@ -20,16 +16,31 @@ target_sources(
     src/main/c/addons.c
 )
 
-set(addons "${CMAKE_CURRENT_LIST_DIR}/src/main/addons/${ANDROID_ABI}")
-
-file(REMOVE_RECURSE ${addons})
-
-link_bare_modules(
-  bare_kit_addons
-  PREBUILDS
-  DESTINATION ${addons}
-  WORKING_DIRECTORY ../../..
+execute_process(
+  COMMAND node prepare ${ANDROID_ABI}
+  WORKING_DIRECTORY .
 )
+
+file(GLOB addons src/main/addons/${ANDROID_ABI}/*.so)
+
+foreach(addon ${addons})
+  cmake_path(GET addon STEM LAST_ONLY target)
+
+  add_library(${target} SHARED IMPORTED)
+
+  set_target_properties(
+    ${target}
+    PROPERTIES
+    IMPORTED_LOCATION "${addon}"
+    IMPORTED_NO_SONAME ON
+  )
+
+  target_link_libraries(
+    bare_kit_addons
+    PUBLIC
+      ${target}
+  )
+endforeach()
 
 set_property(
   DIRECTORY

@@ -1,1 +1,0 @@
-include(bare/bare)

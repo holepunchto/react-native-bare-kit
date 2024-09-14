@@ -1,8 +1,0 @@
-[submodule "android/cmake/bare"]
-	path = android/cmake/bare
-	url = ../../holepunchto/cmake-bare.git
-	shallow = true
-[submodule "android/cmake/npm"]
-	path = android/cmake/npm
-	url = ../../holepunchto/cmake-npm.git
-	shallow = true
