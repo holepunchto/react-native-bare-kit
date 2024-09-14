@@ -86,11 +86,11 @@ function plist (name, version) {
   <key>CFBundleDevelopmentRegion</key>
   <string>English</string>
   <key>CFBundleExecutable</key>
-  <string>${name}-${version}</string>
+  <string>${name}.${version}</string>
   <key>CFBundleIconFile</key>
   <string></string>
   <key>CFBundleIdentifier</key>
-  <string>${name}-${version}</string>
+  <string>${name}.${version}</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundlePackageType</key>
