@@ -1,34 +1,20 @@
 const fs = require('fs')
 const path = require('path')
 const { spawnSync } = require('child_process')
-
-const modules = path.join(__dirname, '..', '..', '..', 'node_modules')
+const prebuilds = require('../prebuilds')
 
 fs.rmSync(path.join(__dirname, 'addons'), { recursive: true, force: true })
 
-for (const base of fs.readdirSync(modules)) {
-  const cwd = path.join(modules, base)
+for (const pkg of prebuilds()) {
+  const cwd = pkg.root
 
-  let pkg
-  try {
-    pkg = require(path.join(cwd, 'package.json'))
-  } catch {
-    continue
-  }
-
-  if (typeof pkg !== 'object' || pkg === null || pkg.addon === undefined) {
-    continue
-  }
-
-  const prebuilds = path.join(cwd, 'prebuilds')
-
-  const device = framework(pkg, path.join(prebuilds, 'ios'), [
-    path.join(prebuilds, 'ios-arm64', `${pkg.name}.bare`)
+  const device = framework(pkg, path.join(pkg.prebuilds, 'ios'), [
+    path.join(pkg.prebuilds, 'ios-arm64', `${pkg.name}.bare`)
   ], { cwd })
 
-  const simulator = framework(pkg, path.join(prebuilds, 'ios-simulator'), [
-    path.join(prebuilds, 'ios-arm64-simulator', `${pkg.name}.bare`),
-    path.join(prebuilds, 'ios-x64-simulator', `${pkg.name}.bare`)
+  const simulator = framework(pkg, path.join(pkg.prebuilds, 'ios-simulator'), [
+    path.join(pkg.prebuilds, 'ios-arm64-simulator', `${pkg.name}.bare`),
+    path.join(pkg.prebuilds, 'ios-x64-simulator', `${pkg.name}.bare`)
   ], { cwd })
 
   xcframework(pkg, path.join(__dirname, 'addons'), [
