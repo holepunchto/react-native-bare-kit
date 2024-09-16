@@ -1,8 +1,8 @@
 # react-native-bare-kit
 
-Bare Kit for React Native.
+<https://github.com/holepunchto/bare-kit> for React Native.
 
-```sh
+```
 npm i react-native-bare-kit
 ```
 
