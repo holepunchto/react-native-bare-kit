@@ -71,26 +71,18 @@ function plist (name, version) {
 <!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>CFBundleDevelopmentRegion</key>
-  <string>English</string>
-  <key>CFBundleExecutable</key>
-  <string>${name}.${version}</string>
-  <key>CFBundleIconFile</key>
-  <string></string>
   <key>CFBundleIdentifier</key>
   <string>${name}.${version}</string>
-  <key>CFBundleInfoDictionaryVersion</key>
-  <string>6.0</string>
-  <key>CFBundlePackageType</key>
-  <string>FMWK</string>
-  <key>CFBundleSignature</key>
-  <string>????</string>
   <key>CFBundleVersion</key>
   <string>${version}</string>
   <key>CFBundleShortVersionString</key>
   <string>${version}</string>
-  <key>CSResourcesFileMapped</key>
-  <true/>
+  <key>CFBundleExecutable</key>
+  <string>${name}.${version}</string>
+  <key>CFBundlePackageType</key>
+  <string>FMWK</string>
+  <key>CFBundleSignature</key>
+  <string>????</string>
 </dict>
 </plist>
 `
