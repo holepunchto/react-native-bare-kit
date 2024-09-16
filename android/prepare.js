@@ -17,7 +17,7 @@ switch (abi) {
 const addons = path.join(__dirname, 'src', 'main', 'addons', abi)
 
 fs.rmSync(addons, { recursive: true, force: true })
-fs.mkdirSync(addons)
+fs.mkdirSync(addons, { recursive: true })
 
 for (const pkg of prebuilds()) {
   fs.copyFileSync(path.join(pkg.prebuilds, `android-${arch}`, `${pkg.name}.bare`), path.join(addons, `lib${pkg.name}.${pkg.version}.so`))
