@@ -18,7 +18,7 @@ target_sources(
 
 execute_process(
   COMMAND node prepare ${ANDROID_ABI}
-  WORKING_DIRECTORY .
+  WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}"
 )
 
 file(GLOB addons src/main/addons/${ANDROID_ABI}/*.so)
