@@ -1,4 +1,4 @@
-const { NativeEventEmitter, NativeModules } = require('react-native')
+const { NativeEventEmitter, NativeModules, AppState } = require('react-native')
 const { Duplex } = require('bare-stream')
 const RPC = require('bare-rpc')
 const b4a = require('b4a')
@@ -101,8 +101,25 @@ const Worklet = exports.Worklet = class BareKitWorklet {
 
     if (worklet) worklet._ipc.push(b4a.from(event.data, 'base64'))
   }
+
+  static _onstatechange (state) {
+    switch (state) {
+      case 'active': return this._onstateactive()
+      case 'background': return this._onstatebackground()
+    }
+  }
+
+  static async _onstateactive () {
+    for (const [, worklet] of this._worklets) await worklet.resume()
+  }
+
+  static async _onstatebackground () {
+    for (const [, worklet] of this._worklets) await worklet.suspend()
+  }
 }
 
 const emitter = new NativeEventEmitter(NativeModules.BareKit)
 
 emitter.addListener('BareKitIPCData', Worklet._onipcdata.bind(Worklet))
+
+AppState.addEventListener('change', Worklet._onstatechange.bind(Worklet))
