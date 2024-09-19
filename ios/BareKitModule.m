@@ -1,6 +1,5 @@
 #import <BareKit/BareKit.h>
 #import <Foundation/Foundation.h>
-#import <React/RCTLog.h>
 
 #import "BareKitModule.h"
 
