@@ -62,7 +62,7 @@ repositories {
 }
 
 dependencies {
-  implementation fileTree(dir: "libs", include: ["*.aar"])
+  api fileTree(dir: "libs", include: ["*.aar"])
 
   implementation "com.facebook.react:react-native:+"
 }
