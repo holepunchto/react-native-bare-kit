@@ -68,14 +68,19 @@ const Worklet = exports.Worklet = class BareKitWorklet {
     return this._rpc
   }
 
-  async start (filename, source, args = []) {
+  async start (filename, source, encoding, args = []) {
     if (Array.isArray(source)) {
       args = source
       source = null
+    } else if (Array.isArray(encoding)) {
+      args = encoding
+      encoding = null
     }
 
+    if (typeof source === 'string') source = b4a.from(source, encoding)
+
     try {
-      this._id = await NativeModules.BareKit.start(filename, source, args, this._memoryLimit)
+      this._id = await NativeModules.BareKit.start(filename, b4a.toString(source, 'base64'), args, this._memoryLimit)
 
       BareKitWorklet._worklets.set(this._id, this)
 
