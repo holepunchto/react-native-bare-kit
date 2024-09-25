@@ -30,7 +30,7 @@
 
     _worklet = [[BareWorklet alloc] initWithConfiguration:_options];
 
-    [_worklet start:filename source:[[NSData alloc] initWithBase64EncodedString:data options:0] arguments:arguments];
+    [_worklet start:filename source:[[NSData alloc] initWithBase64EncodedString:source options:0] arguments:arguments];
 
     _ipc = [[BareIPC alloc] initWithWorklet:_worklet];
 
