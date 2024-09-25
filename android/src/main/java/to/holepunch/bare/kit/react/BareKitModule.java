@@ -7,6 +7,7 @@ import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 import java.io.IOException;
@@ -69,10 +70,10 @@ public class BareKitModule extends BaseJavaModule implements NativeModule {
 
   @ReactMethod
   public void
-  start (String filename, String source, Promise promise) {
+  start (String filename, String source, ReadableArray arguments, double memoryLimit, Promise promise) {
     int id = ++this.id;
 
-    BareKitModuleWorklet worklet = new BareKitModuleWorklet(id, this, filename, source);
+    BareKitModuleWorklet worklet = new BareKitModuleWorklet(id, this, filename, source, arguments.toArrayList().toArray(new String[arguments.size()]), (int) memoryLimit);
 
     this.worklets.put(id, worklet);
 
@@ -143,12 +144,14 @@ public class BareKitModule extends BaseJavaModule implements NativeModule {
     Worklet worklet;
     IPC ipc;
 
-    BareKitModuleWorklet(int id, BareKitModule module, String filename, String source) {
+    BareKitModuleWorklet(int id, BareKitModule module, String filename, String source, String[] arguments, int memoryLimit) {
       this.id = id;
       this.module = module;
 
-      this.worklet = new Worklet();
-      this.worklet.start(filename, source, StandardCharsets.UTF_8);
+      Worklet.Options options = new Worklet.Options().memoryLimit(memoryLimit);
+
+      this.worklet = new Worklet(options);
+      this.worklet.start(filename, source, StandardCharsets.UTF_8, arguments);
 
       this.ipc = new IPC(this.worklet);
 

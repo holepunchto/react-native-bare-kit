@@ -42,7 +42,13 @@ const IPC = class BareKitIPC extends Duplex {
 const Worklet = exports.Worklet = class BareKitWorklet {
   static _worklets = new Map()
 
-  constructor () {
+  constructor (opts = {}) {
+    const {
+      memoryLimit = 0
+    } = opts
+
+    this._memoryLimit = memoryLimit
+
     this._id = -1
 
     const ipc = this._ipc = new IPC(this)
@@ -62,9 +68,14 @@ const Worklet = exports.Worklet = class BareKitWorklet {
     return this._rpc
   }
 
-  async start (filename, source) {
+  async start (filename, source, args = []) {
+    if (Array.isArray(source)) {
+      args = source
+      source = null
+    }
+
     try {
-      this._id = await NativeModules.BareKit.start(filename, source)
+      this._id = await NativeModules.BareKit.start(filename, source, args, this._memoryLimit)
 
       BareKitWorklet._worklets.set(this._id, this)
 

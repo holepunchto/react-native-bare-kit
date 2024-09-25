@@ -2,9 +2,10 @@ export class Worklet {
   IPC: any;
   RPC: any;
 
-  constructor()
+  constructor(options?: { memoryLimit?: number })
 
-  start(filename: string, source: string): Promise<void>
+  start(filename: string, args?: string[]): Promise<void>
+  start(filename: string, source: string, args?: string[]): Promise<void>
   suspend(linger?: number): Promise<void>
   resume(): Promise<void>
   terminate(): Promise<void>

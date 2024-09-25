@@ -5,9 +5,11 @@ package = JSON.parse(File.read(File.join(__dir__, "../package.json")))
 begin
   lockfile = File.read(File.join(__dir__, "../../../package-lock.json"))
 rescue
-  lockfile = File.read(File.join(__dir__, "../../../yarn.lock"))
-rescue
-  lockfile = nil
+  begin
+    lockfile = File.read(File.join(__dir__, "../../../yarn.lock"))
+  rescue
+    lockfile = nil
+  end
 end
 
 Pod::Spec.new do |s|

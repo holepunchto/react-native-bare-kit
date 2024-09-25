@@ -8,12 +8,15 @@
   NSNumber *_id;
   BareKitModule *_module;
   BareWorklet *_worklet;
+  BareWorkletConfiguration *_options;
   BareIPC *_ipc;
 }
 
 - (_Nullable instancetype)initWithModule:(BareKitModule *)module
                                 filename:(NSString *)filename
-                                  source:(NSString *)source {
+                                  source:(NSString *)source
+                               arguments:(NSArray<NSString *> *)arguments
+                             memoryLimit:(nonnull NSNumber *)memoryLimit {
   self = [super init];
 
   if (self) {
@@ -21,9 +24,13 @@
 
     _module = module;
 
-    _worklet = [[BareWorklet alloc] init];
+    _options = [[BareWorkletConfiguration alloc] init];
 
-    [_worklet start:filename source:source encoding:NSUTF8StringEncoding];
+    _options.memoryLimit = memoryLimit.unsignedIntegerValue;
+
+    _worklet = [[BareWorklet alloc] initWithConfiguration:_options];
+
+    [_worklet start:filename source:source encoding:NSUTF8StringEncoding arguments:arguments];
 
     _ipc = [[BareIPC alloc] initWithWorklet:_worklet];
 
@@ -99,11 +106,15 @@ RCT_EXPORT_MODULE(BareKit)
 
 RCT_EXPORT_METHOD(start : (NSString *) filename
                   source : (NSString *) source
+                  arguments : (NSArray *) arguments
+                  memoryLimit : (nonnull NSNumber *) memoryLimit
                   resolve : (RCTPromiseResolveBlock) resolve
                   reject : (RCTPromiseRejectBlock) reject) {
   BareKitModuleWorklet *worklet = [[BareKitModuleWorklet alloc] initWithModule:self
                                                                       filename:filename
-                                                                        source:source];
+                                                                        source:source
+                                                                     arguments:arguments
+                                                                   memoryLimit:memoryLimit];
 
   _worklets[worklet->_id] = worklet;
 
