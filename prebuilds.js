@@ -21,15 +21,17 @@ module.exports = function * prebuilds (root = path.join(__dirname, '..', '..')) 
       continue
     }
 
-    if (typeof pkg !== 'object' || pkg === null || pkg.addon === undefined) {
-      continue
-    }
+    if (typeof pkg === 'object' && pkg !== null) {
+      const isAddon = pkg.addon === true || (typeof pkg.addon === 'object' && pkg.addon !== null)
 
-    yield {
-      name: pkg.name,
-      version: pkg.version,
-      root: cwd,
-      prebuilds: path.join(cwd, 'prebuilds')
+      if (isAddon) {
+        yield {
+          name: pkg.name,
+          version: pkg.version,
+          root: cwd,
+          prebuilds: path.join(cwd, 'prebuilds')
+        }
+      }
     }
 
     yield * prebuilds(cwd)
