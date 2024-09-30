@@ -28,6 +28,10 @@ Pod::Spec.new do |s|
 
   s.vendored_frameworks = "ios/*.xcframework", "ios/addons/*.xcframework"
 
+  s.header_dir = "BareKit"
+
+  s.module_name = "react_native_bare_kit"
+
   s.prepare_command = "node ios/prepare"
 
   install_modules_dependencies(s)
