@@ -16,7 +16,8 @@
                                 filename:(NSString *)filename
                                   source:(NSString *)source
                                arguments:(NSArray<NSString *> *)arguments
-                             memoryLimit:(nonnull NSNumber *)memoryLimit {
+                             memoryLimit:(nonnull NSNumber *)memoryLimit
+                                  assets:(NSString *)assets {
   self = [super init];
 
   if (self) {
@@ -27,6 +28,7 @@
     _options = [[BareWorkletConfiguration alloc] init];
 
     _options.memoryLimit = memoryLimit.unsignedIntegerValue;
+    _options.assets = assets;
 
     _worklet = [[BareWorklet alloc] initWithConfiguration:_options];
 
@@ -108,13 +110,15 @@ RCT_EXPORT_METHOD(start : (NSString *) filename
                   source : (NSString *) source
                   arguments : (NSArray *) arguments
                   memoryLimit : (nonnull NSNumber *) memoryLimit
+                  assets : (NSString *) assets
                   resolve : (RCTPromiseResolveBlock) resolve
                   reject : (RCTPromiseRejectBlock) reject) {
   BareKitModuleWorklet *worklet = [[BareKitModuleWorklet alloc] initWithModule:self
                                                                       filename:filename
                                                                         source:source
                                                                      arguments:arguments
-                                                                   memoryLimit:memoryLimit];
+                                                                   memoryLimit:memoryLimit
+                                                                        assets:assets];
 
   _worklets[worklet->_id] = worklet;
 

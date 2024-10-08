@@ -70,10 +70,10 @@ public class BareKitModule extends BaseJavaModule implements NativeModule {
 
   @ReactMethod
   public void
-  start (String filename, String source, ReadableArray arguments, double memoryLimit, Promise promise) {
+  start (String filename, String source, ReadableArray arguments, double memoryLimit, String assets, Promise promise) {
     int id = ++this.id;
 
-    BareKitModuleWorklet worklet = new BareKitModuleWorklet(id, this, filename, ByteBuffer.wrap(Base64.getDecoder().decode(source)), arguments.toArrayList().toArray(new String[arguments.size()]), (int) memoryLimit);
+    BareKitModuleWorklet worklet = new BareKitModuleWorklet(id, this, filename, ByteBuffer.wrap(Base64.getDecoder().decode(source)), arguments.toArrayList().toArray(new String[arguments.size()]), (int) memoryLimit, assets);
 
     this.worklets.put(id, worklet);
 
@@ -144,11 +144,11 @@ public class BareKitModule extends BaseJavaModule implements NativeModule {
     Worklet worklet;
     IPC ipc;
 
-    BareKitModuleWorklet(int id, BareKitModule module, String filename, ByteBuffer source, String[] arguments, int memoryLimit) {
+    BareKitModuleWorklet(int id, BareKitModule module, String filename, ByteBuffer source, String[] arguments, int memoryLimit, String assets) {
       this.id = id;
       this.module = module;
 
-      Worklet.Options options = new Worklet.Options().memoryLimit(memoryLimit);
+      Worklet.Options options = new Worklet.Options().memoryLimit(memoryLimit).assets(assets);
 
       this.worklet = new Worklet(options);
       this.worklet.start(filename, source, arguments);

@@ -44,10 +44,12 @@ const Worklet = exports.Worklet = class BareKitWorklet {
 
   constructor (opts = {}) {
     const {
-      memoryLimit = 0
+      memoryLimit = 0,
+      assets = null
     } = opts
 
     this._memoryLimit = memoryLimit
+    this._assets = assets
 
     this._id = -1
 
@@ -80,7 +82,7 @@ const Worklet = exports.Worklet = class BareKitWorklet {
     if (typeof source === 'string') source = b4a.from(source, encoding)
 
     try {
-      this._id = await NativeModules.BareKit.start(filename, b4a.toString(source, 'base64'), args, this._memoryLimit)
+      this._id = await NativeModules.BareKit.start(filename, b4a.toString(source, 'base64'), args, this._memoryLimit, this._assets)
 
       BareKitWorklet._worklets.set(this._id, this)
 
