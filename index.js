@@ -84,7 +84,7 @@ const Worklet = exports.Worklet = class BareKitWorklet {
     if (source) source = b4a.toString(source, 'base64')
 
     try {
-      this._id = await NativeModules.BareKit.start(filename, b4a.toString(source, 'base64'), args, this._memoryLimit, this._assets)
+      this._id = await NativeModules.BareKit.start(filename, source, args, this._memoryLimit, this._assets)
 
       BareKitWorklet._worklets.set(this._id, this)
 
