@@ -79,9 +79,11 @@ const Worklet = exports.Worklet = class BareKitWorklet {
       encoding = null
     }
 
-    if (typeof source === 'string') source = b4a.from(source, encoding)
-
-    if (source) source = b4a.toString(source, 'base64')
+    if (typeof source === 'string') {
+      if (encoding !== 'base64') source = b4a.toString(b4a.from(source, encoding), 'base64')
+    } else if (source) {
+      source = b4a.toString(source, 'base64')
+    }
 
     try {
       this._id = await NativeModules.BareKit.start(filename, source, args, this._memoryLimit, this._assets)
