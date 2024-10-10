@@ -73,7 +73,9 @@ public class BareKitModule extends BaseJavaModule implements NativeModule {
   start (String filename, String source, ReadableArray arguments, double memoryLimit, String assets, Promise promise) {
     int id = ++this.id;
 
-    BareKitModuleWorklet worklet = new BareKitModuleWorklet(id, this, filename, ByteBuffer.wrap(Base64.getDecoder().decode(source)), arguments.toArrayList().toArray(new String[arguments.size()]), (int) memoryLimit, assets);
+    ByteBuffer data = source == null ? null : ByteBuffer.wrap(Base64.getDecoder().decode(source));
+
+    BareKitModuleWorklet worklet = new BareKitModuleWorklet(id, this, filename, data, arguments.toArrayList().toArray(new String[arguments.size()]), (int) memoryLimit, assets);
 
     this.worklets.put(id, worklet);
 
