@@ -1,7 +1,3 @@
-.cxx/
-build/
 addons/
 node_modules/
 package-lock.json
-*.aar
-*.xcframework

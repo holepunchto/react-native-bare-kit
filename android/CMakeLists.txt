@@ -2,6 +2,16 @@ cmake_minimum_required(VERSION 3.25)
 
 project(react_native_bare_kit C)
 
+file(GLOB kit libs/${ANDROID_ABI}/libbare-kit.so)
+
+add_library(bare_kit SHARED IMPORTED)
+
+set_target_properties(
+  bare_kit
+  PROPERTIES
+  IMPORTED_LOCATION "${kit}"
+)
+
 add_library(bare_kit_addons SHARED)
 
 set_target_properties(
@@ -50,10 +60,8 @@ set_property(
     ../../../yarn.lock
 )
 
-find_package(bare-kit REQUIRED CONFIG)
-
 target_link_libraries(
   bare_kit_addons
   PUBLIC
-    bare-kit::bare_kit
+    bare_kit
 )

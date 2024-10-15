@@ -30,12 +30,8 @@ android {
   sourceSets {
     main {
       manifest.srcFile "src/main/AndroidManifest.xml"
-      jniLibs.srcDirs "src/main/addons"
+      jniLibs.srcDirs "libs", "src/main/addons"
     }
-  }
-
-  buildFeatures {
-    prefab true
   }
 
   buildTypes {
@@ -50,10 +46,6 @@ android {
       path "CMakeLists.txt"
     }
   }
-
-  packagingOptions {
-    exclude("**/libbare-kit.so")
-  }
 }
 
 repositories {
@@ -62,7 +54,7 @@ repositories {
 }
 
 dependencies {
-  api fileTree(dir: "libs", include: ["*.aar"])
+  api fileTree(dir: "libs", include: ["*.jar"])
 
   implementation "com.facebook.react:react-native:+"
 }
