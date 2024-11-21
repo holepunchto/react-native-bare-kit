@@ -19,10 +19,6 @@ import to.holepunch.bare.kit.IPC;
 import to.holepunch.bare.kit.Worklet;
 
 public class BareKitModule extends BaseJavaModule implements NativeModule {
-  static {
-    System.loadLibrary("bare-kit-addons");
-  }
-
   private int id;
   private HashMap<Integer, BareKitModuleWorklet> worklets;
 

@@ -12,13 +12,12 @@
   "files": [
     "index.js",
     "index.d.ts",
-    "prebuilds.js",
     "*.podspec",
     "android",
     "ios"
   ],
   "scripts": {
-    "test": "standard"
+    "test": "prettier . --check"
   },
   "repository": {
     "type": "git",
@@ -32,6 +31,7 @@
   "homepage": "https://github.com/holepunchto/react-native-bare-kit#readme",
   "dependencies": {
     "b4a": "^1.6.6",
+    "bare-link": "^1.0.1",
     "bare-rpc": "^0.1.1",
     "bare-stream": "^2.2.1"
   },
@@ -40,6 +40,7 @@
     "react-native": "*"
   },
   "devDependencies": {
-    "standard": "^17.1.0"
+    "prettier": "^3.3.3",
+    "prettier-config-standard": "^7.0.0"
   }
 }

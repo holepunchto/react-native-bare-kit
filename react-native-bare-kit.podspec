@@ -32,7 +32,7 @@ Pod::Spec.new do |s|
 
   s.module_name = "react_native_bare_kit"
 
-  s.prepare_command = "node ios/prepare"
+  s.prepare_command = "node ios/link"
 
   install_modules_dependencies(s)
 

@@ -4,7 +4,7 @@ const RPC = require('bare-rpc')
 const b4a = require('b4a')
 
 const IPC = class BareKitIPC extends Duplex {
-  constructor (worklet) {
+  constructor(worklet) {
     super()
 
     this._worklet = worklet
@@ -12,14 +12,17 @@ const IPC = class BareKitIPC extends Duplex {
     this._pendingOpen = null
   }
 
-  _open (cb) {
+  _open(cb) {
     if (this._worklet._id === -1) this._pendingOpen = cb
     else cb(null)
   }
 
-  async _write (chunk, encoding, cb) {
+  async _write(chunk, encoding, cb) {
     try {
-      await NativeModules.BareKit.write(this._worklet._id, b4a.toString(chunk, 'base64'))
+      await NativeModules.BareKit.write(
+        this._worklet._id,
+        b4a.toString(chunk, 'base64')
+      )
 
       cb(null)
     } catch (err) {
@@ -27,50 +30,47 @@ const IPC = class BareKitIPC extends Duplex {
     }
   }
 
-  _continueOpen (err) {
+  _continueOpen(err) {
     if (this._pendingOpen === null) return
     const cb = this._pendingOpen
     this._pendingOpen = null
     cb(err)
   }
 
-  toJSON () {
+  toJSON() {
     return {}
   }
 }
 
-const Worklet = exports.Worklet = class BareKitWorklet {
+const Worklet = (exports.Worklet = class BareKitWorklet {
   static _worklets = new Map()
 
-  constructor (opts = {}) {
-    const {
-      memoryLimit = 0,
-      assets = null
-    } = opts
+  constructor(opts = {}) {
+    const { memoryLimit = 0, assets = null } = opts
 
     this._memoryLimit = memoryLimit
     this._assets = assets
 
     this._id = -1
 
-    const ipc = this._ipc = new IPC(this)
+    const ipc = (this._ipc = new IPC(this))
 
     this._rpc = class extends RPC {
-      constructor (onrequest) {
+      constructor(onrequest) {
         super(ipc, onrequest)
       }
     }
   }
 
-  get IPC () {
+  get IPC() {
     return this._ipc
   }
 
-  get RPC () {
+  get RPC() {
     return this._rpc
   }
 
-  async start (filename, source, encoding, args = []) {
+  async start(filename, source, encoding, args = []) {
     if (Array.isArray(source)) {
       args = source
       source = null
@@ -80,13 +80,20 @@ const Worklet = exports.Worklet = class BareKitWorklet {
     }
 
     if (typeof source === 'string') {
-      if (encoding !== 'base64') source = b4a.toString(b4a.from(source, encoding), 'base64')
+      if (encoding !== 'base64')
+        source = b4a.toString(b4a.from(source, encoding), 'base64')
     } else if (source) {
       source = b4a.toString(source, 'base64')
     }
 
     try {
-      this._id = await NativeModules.BareKit.start(filename, source, args, this._memoryLimit, this._assets)
+      this._id = await NativeModules.BareKit.start(
+        filename,
+        source,
+        args,
+        this._memoryLimit,
+        this._assets
+      )
 
       BareKitWorklet._worklets.set(this._id, this)
 
@@ -98,15 +105,15 @@ const Worklet = exports.Worklet = class BareKitWorklet {
     }
   }
 
-  async suspend (linger = 0) {
+  async suspend(linger = 0) {
     await NativeModules.BareKit.suspend(this._id, linger)
   }
 
-  async resume () {
+  async resume() {
     await NativeModules.BareKit.resume(this._id)
   }
 
-  async terminate () {
+  async terminate() {
     try {
       await NativeModules.BareKit.terminate(this._id)
     } finally {
@@ -114,31 +121,33 @@ const Worklet = exports.Worklet = class BareKitWorklet {
     }
   }
 
-  toJSON () {
+  toJSON() {
     return {}
   }
 
-  static _onipcdata (event) {
+  static _onipcdata(event) {
     const worklet = this._worklets.get(event.worklet)
 
     if (worklet) worklet._ipc.push(b4a.from(event.data, 'base64'))
   }
 
-  static _onstatechange (state) {
+  static _onstatechange(state) {
     switch (state) {
-      case 'active': return this._onstateactive()
-      case 'background': return this._onstatebackground()
+      case 'active':
+        return this._onstateactive()
+      case 'background':
+        return this._onstatebackground()
     }
   }
 
-  static async _onstateactive () {
+  static async _onstateactive() {
     for (const [, worklet] of this._worklets) await worklet.resume()
   }
 
-  static async _onstatebackground () {
+  static async _onstatebackground() {
     for (const [, worklet] of this._worklets) await worklet.suspend()
   }
-}
+})
 
 const emitter = new NativeEventEmitter(NativeModules.BareKit)
 
