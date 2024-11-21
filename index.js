@@ -3,7 +3,7 @@ const { Duplex } = require('bare-stream')
 const RPC = require('bare-rpc')
 const b4a = require('b4a')
 
-const IPC = class BareKitIPC extends Duplex {
+class BareKitIPC extends Duplex {
   constructor(worklet) {
     super()
 
@@ -42,7 +42,7 @@ const IPC = class BareKitIPC extends Duplex {
   }
 }
 
-const Worklet = (exports.Worklet = class BareKitWorklet {
+exports.Worklet = class BareKitWorklet {
   static _worklets = new Map()
 
   constructor(opts = {}) {
@@ -53,7 +53,7 @@ const Worklet = (exports.Worklet = class BareKitWorklet {
 
     this._id = -1
 
-    const ipc = (this._ipc = new IPC(this))
+    const ipc = (this._ipc = new BareKitIPC(this))
 
     this._rpc = class extends RPC {
       constructor(onrequest) {
@@ -147,7 +147,9 @@ const Worklet = (exports.Worklet = class BareKitWorklet {
   static async _onstatebackground() {
     for (const [, worklet] of this._worklets) await worklet.suspend()
   }
-})
+}
+
+const Worklet = exports.Worklet
 
 const emitter = new NativeEventEmitter(NativeModules.BareKit)
 
