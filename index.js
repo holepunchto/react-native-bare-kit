@@ -1,6 +1,5 @@
-const { NativeEventEmitter, NativeModules, AppState } = require('react-native')
-const { Duplex } = require('bare-stream')
-const RPC = require('bare-rpc')
+const { NativeModules, AppState } = require('react-native')
+const { Duplex } = require('streamx')
 const b4a = require('b4a')
 
 class BareKitIPC extends Duplex {
@@ -8,32 +7,33 @@ class BareKitIPC extends Duplex {
     super()
 
     this._worklet = worklet
-
-    this._pendingOpen = null
   }
 
-  _open(cb) {
-    if (this._worklet._id === -1) this._pendingOpen = cb
-    else cb(null)
-  }
-
-  async _write(chunk, encoding, cb) {
+  async _read(cb) {
+    let err = null
     try {
-      await NativeModules.BareKit.write(
-        this._worklet._id,
-        b4a.toString(chunk, 'base64')
-      )
+      const data = await NativeModules.BareKit.read(this._worklet._id)
 
-      cb(null)
-    } catch (err) {
-      cb(err)
+      this.push(b4a.from(data, 'base64'))
+    } catch (e) {
+      err = e
     }
+
+    cb(err)
   }
 
-  _continueOpen(err) {
-    if (this._pendingOpen === null) return
-    const cb = this._pendingOpen
-    this._pendingOpen = null
+  async _write(data, cb) {
+    let err = null
+    try {
+      if (typeof data === 'string') data = b4a.from(data)
+
+      data = b4a.toString(data, 'base64')
+
+      await NativeModules.BareKit.write(this._worklet._id, data)
+    } catch (e) {
+      err = e
+    }
+
     cb(err)
   }
 
@@ -48,26 +48,14 @@ exports.Worklet = class BareKitWorklet {
   constructor(opts = {}) {
     const { memoryLimit = 0, assets = null } = opts
 
+    this._id = -1
     this._memoryLimit = memoryLimit
     this._assets = assets
-
-    this._id = -1
-
-    const ipc = (this._ipc = new BareKitIPC(this))
-
-    this._rpc = class extends RPC {
-      constructor(onrequest) {
-        super(ipc, onrequest)
-      }
-    }
+    this._ipc = null
   }
 
   get IPC() {
     return this._ipc
-  }
-
-  get RPC() {
-    return this._rpc
   }
 
   async start(filename, source, encoding, args = []) {
@@ -86,23 +74,17 @@ exports.Worklet = class BareKitWorklet {
       source = b4a.toString(source, 'base64')
     }
 
-    try {
-      this._id = await NativeModules.BareKit.start(
-        filename,
-        source,
-        args,
-        this._memoryLimit,
-        this._assets
-      )
+    this._id = await NativeModules.BareKit.start(
+      filename,
+      source,
+      args,
+      this._memoryLimit,
+      this._assets
+    )
 
-      BareKitWorklet._worklets.set(this._id, this)
+    BareKitWorklet._worklets.set(this._id, this)
 
-      this._ipc._continueOpen(null)
-    } catch (err) {
-      this._ipc._continueOpen(err)
-
-      throw err
-    }
+    this._ipc = new BareKitIPC(this)
   }
 
   async suspend(linger = 0) {
@@ -125,12 +107,6 @@ exports.Worklet = class BareKitWorklet {
     return {}
   }
 
-  static _onipcdata(event) {
-    const worklet = this._worklets.get(event.worklet)
-
-    if (worklet) worklet._ipc.push(b4a.from(event.data, 'base64'))
-  }
-
   static _onstatechange(state) {
     switch (state) {
       case 'active':
@@ -150,9 +126,5 @@ exports.Worklet = class BareKitWorklet {
 }
 
 const Worklet = exports.Worklet
-
-const emitter = new NativeEventEmitter(NativeModules.BareKit)
-
-emitter.addListener('BareKitIPCData', Worklet._onipcdata.bind(Worklet))
 
 AppState.addEventListener('change', Worklet._onstatechange.bind(Worklet))

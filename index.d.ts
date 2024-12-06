@@ -1,6 +1,7 @@
+import type { Duplex } from 'streamx'
+
 export class Worklet {
-  IPC: any
-  RPC: any
+  IPC: Duplex | null
 
   constructor(options?: { memoryLimit?: number; assets?: string })
 

@@ -3,6 +3,10 @@
 
 #import "BareKitModule.h"
 
+@interface BareKitModuleWorklet : NSObject
+
+@end
+
 @implementation BareKitModuleWorklet {
 @public
   NSNumber *_id;
@@ -32,36 +36,20 @@
 
     _worklet = [[BareWorklet alloc] initWithConfiguration:_options];
 
+    NSData *decoded;
+
     if (source == nil) {
-      [_worklet start:filename source:nil arguments:arguments];
+      decoded = nil;
     } else {
-      [_worklet start:filename source:[[NSData alloc] initWithBase64EncodedString:source options:0] arguments:arguments];
+      decoded = [[NSData alloc] initWithBase64EncodedString:source options:0];
     }
 
-    _ipc = [[BareIPC alloc] initWithWorklet:_worklet];
+    [_worklet start:filename source:decoded arguments:arguments];
 
-    [self _read];
+    _ipc = [[BareIPC alloc] initWithWorklet:_worklet];
   }
 
   return self;
-}
-
-- (void)_read {
-  [_ipc read:^(NSData *data) {
-    if (data == nil) return;
-
-    [self->_module sendEventWithName:@"BareKitIPCData"
-                                body:@{
-                                  @"worklet" : self->_id,
-                                  @"data" : [data base64EncodedStringWithOptions:0],
-                                }];
-
-    [self _read];
-  }];
-}
-
-- (void)_write:(NSString *)data {
-  [_ipc write:[[NSData alloc] initWithBase64EncodedString:data options:0]];
 }
 
 - (void)_suspend:(NSNumber *)linger {
@@ -97,8 +85,6 @@ RCT_EXPORT_MODULE(BareKit)
 }
 
 - (void)invalidate {
-  [super invalidate];
-
   for (NSNumber *id in _worklets) {
     [_worklets[id] _terminate];
   }
@@ -106,17 +92,13 @@ RCT_EXPORT_MODULE(BareKit)
   [_worklets removeAllObjects];
 }
 
-- (NSArray<NSString *> *)supportedEvents {
-  return @[ @"BareKitIPCData" ];
-}
-
-RCT_EXPORT_METHOD (start : (NSString *) filename
-                   source : (NSString *) source
-                   arguments : (NSArray *) arguments
-                   memoryLimit : (nonnull NSNumber *) memoryLimit
-                   assets : (NSString *) assets
-                   resolve : (RCTPromiseResolveBlock) resolve
-                   reject : (RCTPromiseRejectBlock) reject) {
+RCT_EXPORT_METHOD(start : (NSString *) filename
+                  source : (NSString *) source
+                  arguments : (NSArray *) arguments
+                  memoryLimit : (nonnull NSNumber *) memoryLimit
+                  assets : (NSString *) assets
+                  resolve : (RCTPromiseResolveBlock) resolve
+                  reject : (RCTPromiseRejectBlock) reject) {
   BareKitModuleWorklet *worklet = [[BareKitModuleWorklet alloc] initWithModule:self
                                                                       filename:filename
                                                                         source:source
@@ -129,23 +111,53 @@ RCT_EXPORT_METHOD (start : (NSString *) filename
   resolve(worklet->_id);
 }
 
-RCT_EXPORT_METHOD (write : (nonnull NSNumber *) id
-                   data : (NSString *) data
-                   resolve : (RCTPromiseResolveBlock) resolve
-                   reject : (RCTPromiseRejectBlock) reject) {
+RCT_EXPORT_METHOD(read : (nonnull NSNumber *) id
+                  resolve : (RCTPromiseResolveBlock) resolve
+                  reject : (RCTPromiseRejectBlock) reject) {
   BareKitModuleWorklet *worklet = _worklets[id];
 
   if (worklet == nil) return reject(@"INVALID_ID", @"No such worklet found", nil);
 
-  [worklet _write:data];
+  NSData *data = [worklet->_ipc read];
 
-  resolve(nil);
+  if (data) return resolve([data base64EncodedStringWithOptions:0]);
+
+  worklet->_ipc.readable = ^(BareIPC *ipc) {
+    NSData *data = [ipc read];
+
+    if (data == nil) return;
+
+    ipc.readable = nil;
+
+    resolve([data base64EncodedStringWithOptions:0]);
+  };
 }
 
-RCT_EXPORT_METHOD (suspend : (nonnull NSNumber *) id
-                   linger : (nonnull NSNumber *) linger
-                   resolve : (RCTPromiseResolveBlock) resolve
-                   reject : (RCTPromiseRejectBlock) reject) {
+RCT_EXPORT_METHOD(write : (nonnull NSNumber *) id
+                  data : (NSString *) data
+                  resolve : (RCTPromiseResolveBlock) resolve
+                  reject : (RCTPromiseRejectBlock) reject) {
+  BareKitModuleWorklet *worklet = _worklets[id];
+
+  if (worklet == nil) return reject(@"INVALID_ID", @"No such worklet found", nil);
+
+  NSData *decoded = [[NSData alloc] initWithBase64EncodedString:data options:0];
+
+  if ([worklet->_ipc write:decoded]) return resolve(nil);
+
+  worklet->_ipc.writable = ^(BareIPC *ipc) {
+    if ([ipc write:decoded]) {
+      ipc.writable = nil;
+
+      resolve(nil);
+    }
+  };
+}
+
+RCT_EXPORT_METHOD(suspend : (nonnull NSNumber *) id
+                  linger : (nonnull NSNumber *) linger
+                  resolve : (RCTPromiseResolveBlock) resolve
+                  reject : (RCTPromiseRejectBlock) reject) {
   BareKitModuleWorklet *worklet = _worklets[id];
 
   if (worklet == nil) return reject(@"INVALID_ID", @"No such worklet found", nil);
@@ -155,9 +167,9 @@ RCT_EXPORT_METHOD (suspend : (nonnull NSNumber *) id
   resolve(nil);
 }
 
-RCT_EXPORT_METHOD (resume : (nonnull NSNumber *) id
-                   resolve : (RCTPromiseResolveBlock) resolve
-                   reject : (RCTPromiseRejectBlock) reject) {
+RCT_EXPORT_METHOD(resume : (nonnull NSNumber *) id
+                  resolve : (RCTPromiseResolveBlock) resolve
+                  reject : (RCTPromiseRejectBlock) reject) {
   BareKitModuleWorklet *worklet = _worklets[id];
 
   if (worklet == nil) return reject(@"INVALID_ID", @"No such worklet found", nil);
@@ -167,9 +179,9 @@ RCT_EXPORT_METHOD (resume : (nonnull NSNumber *) id
   resolve(nil);
 }
 
-RCT_EXPORT_METHOD (terminate : (nonnull NSNumber *) id
-                   resolve : (RCTPromiseResolveBlock) resolve
-                   reject : (RCTPromiseRejectBlock) reject) {
+RCT_EXPORT_METHOD(terminate : (nonnull NSNumber *) id
+                  resolve : (RCTPromiseResolveBlock) resolve
+                  reject : (RCTPromiseRejectBlock) reject) {
   BareKitModuleWorklet *worklet = _worklets[id];
 
   if (worklet == nil) return reject(@"INVALID_ID", @"No such worklet found", nil);

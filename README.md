@@ -16,21 +16,21 @@ import { Worklet } from 'react-native-bare-kit'
 
 const worklet = new Worklet()
 
-await worklet.start('/app.bundle', source)
+const source = `\
+const { IPC } = BareKit
 
-const rpc = new worklet.RPC((req) => {
-  if (req.command === 'ping') {
-    console.log(req.data)
+IPC.setEncoding('utf8')
+IPC.on('data', (data) => console.log(data))
+IPC.write('Hello from Bare!')
+`
 
-    req.reply('pong')
-  }
-})
+await worklet.start('/app.js', source)
 
-const req = rpc.request('ping')
-req.send('ping')
+const { IPC } = worklet
 
-const data = await req.reply()
-console.log(data.toString())
+IPC.setEncoding('utf8')
+IPC.on('data', (data) => console.log(data))
+IPC.write('Hello from React Native!')
 ```
 
 Refer to <https://github.com/holepunchto/bare-expo> for an example of using the library in an Expo application.

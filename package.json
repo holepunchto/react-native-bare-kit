@@ -32,8 +32,7 @@
   "dependencies": {
     "b4a": "^1.6.6",
     "bare-link": "^1.0.1",
-    "bare-rpc": "^0.1.1",
-    "bare-stream": "^2.2.1"
+    "streamx": "^2.21.0"
   },
   "peerDependencies": {
     "react": "*",

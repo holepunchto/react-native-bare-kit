@@ -1,6 +1,5 @@
 package to.holepunch.bare.kit.react;
 
-import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.BaseJavaModule;
 import com.facebook.react.bridge.NativeModule;
 import com.facebook.react.bridge.Promise;
@@ -8,9 +7,6 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableArray;
-import com.facebook.react.bridge.WritableMap;
-import com.facebook.react.modules.core.DeviceEventManagerModule;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -31,45 +27,34 @@ public class BareKitModule extends BaseJavaModule implements NativeModule {
 
   @Override
   public String
-  getName () {
+  getName() {
     return "BareKit";
   }
 
   @Override
   public void
-  invalidate () {
+  invalidate() {
     super.invalidate();
 
     for (BareKitModuleWorklet worklet : worklets.values()) {
-      try {
-        worklet.terminate();
-      } catch (IOException e) {
-        continue;
-      }
+      worklet.terminate();
     }
 
     worklets.clear();
   }
 
-  private void
-  sendEvent (String event, WritableMap params) {
-    getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).emit(event, params);
-  }
-
   @ReactMethod
   public void
-  addListener (String event) {}
-
-  @ReactMethod
-  public void
-  removeListeners (Integer count) {}
-
-  @ReactMethod
-  public void
-  start (String filename, String source, ReadableArray arguments, double memoryLimit, String assets, Promise promise) {
+  start(String filename, String source, ReadableArray arguments, double memoryLimit, String assets, Promise promise) {
     int id = ++this.id;
 
-    ByteBuffer data = source == null ? null : ByteBuffer.wrap(Base64.getDecoder().decode(source));
+    ByteBuffer data;
+
+    if (source == null) {
+      data = null;
+    } else {
+      data = decode(source);
+    }
 
     BareKitModuleWorklet worklet = new BareKitModuleWorklet(id, this, filename, data, arguments.toArrayList().toArray(new String[arguments.size()]), (int) memoryLimit, assets);
 
@@ -80,60 +65,109 @@ public class BareKitModule extends BaseJavaModule implements NativeModule {
 
   @ReactMethod
   public void
-  write (double id, String data, Promise promise) {
+  read(double id, Promise promise) {
     BareKitModuleWorklet worklet = worklets.get((int) id);
 
     if (worklet == null) {
       promise.reject("INVALID_ID", new Error("No such worklet found"));
+      return;
+    }
+
+    read(worklet.ipc, promise);
+  }
+
+  private void
+  read(IPC ipc, Promise promise) {
+    ByteBuffer data = ipc.read();
+
+    if (data != null) {
+      ipc.readable(null);
+
+      promise.resolve(encode(data));
     } else {
-      worklet.write(data);
+      ipc.readable(() -> read(ipc, promise));
+    }
+  }
+
+  @ReactMethod
+  public void
+  write(double id, String data, Promise promise) {
+    BareKitModuleWorklet worklet = worklets.get((int) id);
+
+    if (worklet == null) {
+      promise.reject("INVALID_ID", new Error("No such worklet found"));
+      return;
+    }
+
+    write(worklet.ipc, decode(data), promise);
+  }
+
+  private void
+  write(IPC ipc, ByteBuffer data, Promise promise) {
+    if (ipc.write(data)) {
+      ipc.writable(null);
 
       promise.resolve(null);
+    } else {
+      ipc.writable(() -> write(ipc, data, promise));
     }
   }
 
   @ReactMethod
   public void
-  suspend (double id, double linger, Promise promise) {
+  suspend(double id, double linger, Promise promise) {
     BareKitModuleWorklet worklet = worklets.get((int) id);
 
     if (worklet == null) {
       promise.reject("INVALID_ID", new Error("No such worklet found"));
-    } else {
-      worklet.suspend((int) linger);
+      return;
     }
+
+    worklet.suspend((int) linger);
+
+    promise.resolve(null);
   }
 
   @ReactMethod
   public void
-  resume (double id, Promise promise) {
+  resume(double id, Promise promise) {
     BareKitModuleWorklet worklet = worklets.get((int) id);
 
     if (worklet == null) {
       promise.reject("INVALID_ID", new Error("No such worklet found"));
-    } else {
-      worklet.resume();
+      return;
     }
+
+    worklet.resume();
+
+    promise.resolve(null);
   }
 
   @ReactMethod
   public void
-  terminate (double id, Promise promise) {
+  terminate(double id, Promise promise) {
     BareKitModuleWorklet worklet = worklets.get((int) id);
 
     if (worklet == null) {
       promise.reject("INVALID_ID", new Error("No such worklet found"));
-    } else {
-      try {
-        worklet.terminate();
-
-        worklets.remove(worklet.id);
-
-        promise.resolve(null);
-      } catch (IOException e) {
-        promise.reject("TERMINATION_FAILED", e);
-      }
+      return;
     }
+
+    worklet.terminate();
+
+    worklets.remove(worklet.id);
+
+    promise.resolve(null);
+  }
+
+  private String
+  encode(ByteBuffer data) {
+    return StandardCharsets.UTF_8.decode(Base64.getEncoder().encode(data)).toString();
+  }
+
+  private ByteBuffer
+  decode(String data) {
+    return ByteBuffer.wrap(Base64.getDecoder().decode(data));
   }
 
   private static class BareKitModuleWorklet {
@@ -152,46 +186,20 @@ public class BareKitModule extends BaseJavaModule implements NativeModule {
       this.worklet.start(filename, source, arguments);
 
       this.ipc = new IPC(this.worklet);
-
-      read();
     }
 
     void
-    read () {
-      ipc.read((data, error) -> {
-        if (data == null) return;
-
-        WritableMap params = Arguments.createMap();
-
-        params.putInt("worklet", this.id);
-
-        ByteBuffer encoded = Base64.getEncoder().encode(data);
-
-        params.putString("data", StandardCharsets.UTF_8.decode(encoded).toString());
-
-        module.sendEvent("BareKitIPCData", params);
-
-        read();
-      });
-    }
-
-    void
-    write (String data) {
-      ipc.write(ByteBuffer.wrap(Base64.getDecoder().decode(data)));
-    }
-
-    void
-    suspend (int linger) {
+    suspend(int linger) {
       worklet.suspend(linger);
     }
 
     void
-    resume () {
+    resume() {
       worklet.resume();
     }
 
     void
-    terminate () throws IOException {
+    terminate() {
       ipc.close();
 
       worklet.terminate();

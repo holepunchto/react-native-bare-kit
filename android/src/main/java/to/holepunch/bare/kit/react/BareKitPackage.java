@@ -10,7 +10,7 @@ import java.util.List;
 public class BareKitPackage implements ReactPackage {
   @Override
   public List<NativeModule>
-  createNativeModules (ReactApplicationContext context) {
+  createNativeModules(ReactApplicationContext context) {
     List<NativeModule> modules = new ArrayList<>();
 
     modules.add(new BareKitModule(context));
@@ -20,7 +20,7 @@ public class BareKitPackage implements ReactPackage {
 
   @Override
   public List<ViewManager>
-  createViewManagers (ReactApplicationContext context) {
+  createViewManagers(ReactApplicationContext context) {
     return new ArrayList<>();
   }
 }
