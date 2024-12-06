@@ -1,3 +1,4 @@
 .cxx/
 build/
 addons/
+libc++_shared.so
