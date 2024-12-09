@@ -12,11 +12,11 @@
   NSNumber *_id;
   BareKitModule *_module;
   BareWorklet *_worklet;
-  BareWorkletConfiguration *_options;
   BareIPC *_ipc;
 }
 
 - (_Nullable instancetype)initWithModule:(BareKitModule *)module
+                                      id:(NSNumber *)id
                                 filename:(NSString *)filename
                                   source:(NSString *)source
                                arguments:(NSArray<NSString *> *)arguments
@@ -25,16 +25,14 @@
   self = [super init];
 
   if (self) {
-    _id = @((uintptr_t) self);
-
+    _id = id;
     _module = module;
 
-    _options = [[BareWorkletConfiguration alloc] init];
+    BareWorkletConfiguration *options = [[BareWorkletConfiguration alloc] init];
+    options.memoryLimit = memoryLimit.unsignedIntegerValue;
+    options.assets = assets;
 
-    _options.memoryLimit = memoryLimit.unsignedIntegerValue;
-    _options.assets = assets;
-
-    _worklet = [[BareWorklet alloc] initWithConfiguration:_options];
+    _worklet = [[BareWorklet alloc] initWithConfiguration:options];
 
     NSData *decoded;
 
@@ -62,13 +60,13 @@
 
 - (void)_terminate {
   [_ipc close];
-
   [_worklet terminate];
 }
 
 @end
 
 @implementation BareKitModule {
+  int _id;
   NSMutableDictionary<NSNumber *, BareKitModuleWorklet *> *_worklets;
 }
 
@@ -78,6 +76,7 @@ RCT_EXPORT_MODULE(BareKit)
   self = [super init];
 
   if (self) {
+    _id = 0;
     _worklets = [[NSMutableDictionary alloc] init];
   }
 
@@ -99,16 +98,19 @@ RCT_EXPORT_METHOD(start : (NSString *) filename
                   assets : (NSString *) assets
                   resolve : (RCTPromiseResolveBlock) resolve
                   reject : (RCTPromiseRejectBlock) reject) {
+  NSNumber *id = @(++_id);
+
   BareKitModuleWorklet *worklet = [[BareKitModuleWorklet alloc] initWithModule:self
+                                                                            id:id
                                                                       filename:filename
                                                                         source:source
                                                                      arguments:arguments
                                                                    memoryLimit:memoryLimit
                                                                         assets:assets];
 
-  _worklets[worklet->_id] = worklet;
+  _worklets[id] = worklet;
 
-  resolve(worklet->_id);
+  resolve(id);
 }
 
 RCT_EXPORT_METHOD(read : (nonnull NSNumber *) id

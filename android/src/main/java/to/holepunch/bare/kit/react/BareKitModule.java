@@ -56,7 +56,7 @@ public class BareKitModule extends BaseJavaModule implements NativeModule {
       data = decode(source);
     }
 
-    BareKitModuleWorklet worklet = new BareKitModuleWorklet(id, this, filename, data, arguments.toArrayList().toArray(new String[arguments.size()]), (int) memoryLimit, assets);
+    BareKitModuleWorklet worklet = new BareKitModuleWorklet(this, id, filename, data, arguments.toArrayList().toArray(new String[arguments.size()]), (int) memoryLimit, assets);
 
     this.worklets.put(id, worklet);
 
@@ -176,7 +176,7 @@ public class BareKitModule extends BaseJavaModule implements NativeModule {
     Worklet worklet;
     IPC ipc;
 
-    BareKitModuleWorklet(int id, BareKitModule module, String filename, ByteBuffer source, String[] arguments, int memoryLimit, String assets) {
+    BareKitModuleWorklet(BareKitModule module, int id, String filename, ByteBuffer source, String[] arguments, int memoryLimit, String assets) {
       this.id = id;
       this.module = module;
 
@@ -201,7 +201,6 @@ public class BareKitModule extends BaseJavaModule implements NativeModule {
     void
     terminate() {
       ipc.close();
-
       worklet.terminate();
     }
   }
