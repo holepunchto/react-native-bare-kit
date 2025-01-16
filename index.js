@@ -108,6 +108,8 @@ exports.Worklet = class BareKitWorklet {
     }
 
     this._ipc._continueOpen(err)
+
+    if (err) throw err
   }
 
   async suspend(linger = 0) {
