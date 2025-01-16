@@ -7,6 +7,13 @@ class BareKitIPC extends Duplex {
     super()
 
     this._worklet = worklet
+
+    this._pendingOpen = null
+  }
+
+  _open(cb) {
+    if (this._worklet._id === -1) this._pendingOpen = cb
+    else cb(null)
   }
 
   async _read(cb) {
@@ -37,6 +44,16 @@ class BareKitIPC extends Duplex {
     cb(err)
   }
 
+  _continueOpen(err) {
+    if (this._pendingOpen === null) {
+      if (err) this.destroy(err)
+    } else {
+      const cb = this._pendingOpen
+      this._pendingOpen = null
+      cb(err)
+    }
+  }
+
   toJSON() {
     return {}
   }
@@ -51,7 +68,7 @@ exports.Worklet = class BareKitWorklet {
     this._id = -1
     this._memoryLimit = memoryLimit
     this._assets = assets
-    this._ipc = null
+    this._ipc = new BareKitIPC(this)
   }
 
   get IPC() {
@@ -68,23 +85,29 @@ exports.Worklet = class BareKitWorklet {
     }
 
     if (typeof source === 'string') {
-      if (encoding !== 'base64')
+      if (encoding !== 'base64') {
         source = b4a.toString(b4a.from(source, encoding), 'base64')
+      }
     } else if (source) {
       source = b4a.toString(source, 'base64')
     }
 
-    this._id = await NativeModules.BareKit.start(
-      filename,
-      source,
-      args,
-      this._memoryLimit,
-      this._assets
-    )
+    let err = null
+    try {
+      this._id = await NativeModules.BareKit.start(
+        filename,
+        source,
+        args,
+        this._memoryLimit,
+        this._assets
+      )
 
-    BareKitWorklet._worklets.set(this._id, this)
+      BareKitWorklet._worklets.set(this._id, this)
+    } catch (e) {
+      err = e
+    }
 
-    this._ipc = new BareKitIPC(this)
+    this._ipc._continueOpen(err)
   }
 
   async suspend(linger = 0) {
