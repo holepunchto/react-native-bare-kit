@@ -1,6 +1,6 @@
 package to.holepunch.bare.kit.react;
 
-import com.facebook.react.bridge.BaseJavaModule;
+import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.NativeModule;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
@@ -14,7 +14,7 @@ import java.util.HashMap;
 import to.holepunch.bare.kit.IPC;
 import to.holepunch.bare.kit.Worklet;
 
-public class BareKitModule extends BaseJavaModule implements NativeModule {
+public class BareKitModule extends ReactContextBaseJavaModule implements NativeModule {
   private int id;
   private HashMap<Integer, BareKitModuleWorklet> worklets;
 
