@@ -1,26 +1,33 @@
 package to.holepunch.bare.kit.react;
 
-import com.facebook.react.ReactPackage;
+import com.facebook.react.BaseReactPackage;
 import com.facebook.react.bridge.NativeModule;
 import com.facebook.react.bridge.ReactApplicationContext;
-import com.facebook.react.uimanager.ViewManager;
-import java.util.ArrayList;
-import java.util.List;
+import com.facebook.react.module.model.ReactModuleInfo;
+import com.facebook.react.module.model.ReactModuleInfoProvider;
+import java.util.HashMap;
+import java.util.Map;
 
-public class BareKitPackage implements ReactPackage {
+public class BareKitPackage extends BaseReactPackage {
+  public static String NAME = BareKitModule.NAME;
+
   @Override
-  public List<NativeModule>
-  createNativeModules(ReactApplicationContext context) {
-    List<NativeModule> modules = new ArrayList<>();
-
-    modules.add(new BareKitModule(context));
-
-    return modules;
+  public NativeModule
+  getModule(String name, ReactApplicationContext context) {
+    if (name.equals(NAME)) {
+      return new BareKitModule(context);
+    } else {
+      return null;
+    }
   }
 
   @Override
-  public List<ViewManager>
-  createViewManagers(ReactApplicationContext context) {
-    return new ArrayList<>();
+  public ReactModuleInfoProvider
+  getReactModuleInfoProvider() {
+    return () -> {
+      Map<String, ReactModuleInfo> map = new HashMap<>();
+      map.put(NAME, new ReactModuleInfo(NAME, NAME, false, false, false, true));
+      return map;
+    };
   }
 }

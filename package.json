@@ -30,7 +30,7 @@
      "type": "modules",
      "jsSrcsDir": "specs",
      "android": {
-       "javaPackageName": "to.holepunch.bare.kit"
+       "javaPackageName": "to.holepunch.bare.kit.react"
      }
    },
   "dependencies": {
