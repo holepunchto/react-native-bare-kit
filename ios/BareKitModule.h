@@ -1,6 +1,5 @@
-#import <React/RCTBridgeModule.h>
-#import <React/RCTInvalidating.h>
+#import <BareKitSpec/BareKitSpec.h>
 
-@interface BareKitModule : NSObject <RCTBridgeModule, RCTInvalidating>
+@interface BareKitModule : NSObject <NativeBareKitSpec>
 
 @end

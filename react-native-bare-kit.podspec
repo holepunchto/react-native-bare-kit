@@ -24,7 +24,7 @@ Pod::Spec.new do |s|
 
   s.source = { :git => package["repository"]["url"], :tag => "#{s.version}" }
 
-  s.source_files = "ios/**/*.{h,m}"
+  s.source_files = "ios/**/*.{h,mm}"
 
   s.vendored_frameworks = "ios/*.xcframework", "ios/addons/*.xcframework"
 
