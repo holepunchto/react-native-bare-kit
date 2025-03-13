@@ -1,6 +1,7 @@
-const { NativeModules, AppState } = require('react-native')
+const { AppState } = require('react-native')
 const { Duplex } = require('streamx')
 const b4a = require('b4a')
+const { default: NativeBareKit } = require('./specs/NativeBareKit')
 
 class BareKitIPC extends Duplex {
   constructor(worklet) {
@@ -19,7 +20,7 @@ class BareKitIPC extends Duplex {
   async _read(cb) {
     let err = null
     try {
-      const data = await NativeModules.BareKit.read(this._worklet._id)
+      const data = await NativeBareKit.read(this._worklet._id)
 
       this.push(b4a.from(data, 'base64'))
     } catch (e) {
@@ -36,7 +37,7 @@ class BareKitIPC extends Duplex {
 
       data = b4a.toString(data, 'base64')
 
-      await NativeModules.BareKit.write(this._worklet._id, data)
+      await NativeBareKit.write(this._worklet._id, data)
     } catch (e) {
       err = e
     }
@@ -75,7 +76,7 @@ exports.Worklet = class BareKitWorklet {
     return this._ipc
   }
 
-  async start(filename, source, encoding, args = []) {
+  start(filename, source, encoding, args = []) {
     if (Array.isArray(source)) {
       args = source
       source = null
@@ -94,7 +95,7 @@ exports.Worklet = class BareKitWorklet {
 
     let err = null
     try {
-      this._id = await NativeModules.BareKit.start(
+      this._id = NativeBareKit.start(
         filename,
         source,
         args,
@@ -112,17 +113,17 @@ exports.Worklet = class BareKitWorklet {
     if (err) throw err
   }
 
-  async suspend(linger = 0) {
-    await NativeModules.BareKit.suspend(this._id, linger)
+  suspend(linger = 0) {
+    NativeBareKit.suspend(this._id, linger)
   }
 
-  async resume() {
-    await NativeModules.BareKit.resume(this._id)
+  resume() {
+    NativeBareKit.resume(this._id)
   }
 
-  async terminate() {
+  terminate() {
     try {
-      await NativeModules.BareKit.terminate(this._id)
+      NativeBareKit.terminate(this._id)
     } finally {
       this._id = -1
     }
@@ -142,11 +143,11 @@ exports.Worklet = class BareKitWorklet {
   }
 
   static async _onstateactive() {
-    for (const [, worklet] of this._worklets) await worklet.resume()
+    for (const [, worklet] of this._worklets) worklet.resume()
   }
 
   static async _onstatebackground() {
-    for (const [, worklet] of this._worklets) await worklet.suspend()
+    for (const [, worklet] of this._worklets) worklet.suspend()
   }
 }
 

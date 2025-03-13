@@ -2,19 +2,15 @@
   "name": "react-native-bare-kit",
   "version": "0.5.6",
   "description": "Bare Kit for React Native",
-  "exports": {
-    ".": {
-      "types": "./index.d.ts",
-      "default": "./index.js"
-    },
-    "./package": "./package.json"
-  },
+  "main": "./index.js",
+  "types": "./index.d.ts",
   "files": [
     "index.js",
     "index.d.ts",
     "*.podspec",
     "android",
-    "ios"
+    "ios",
+    "specs"
   ],
   "scripts": {
     "test": "prettier . --check"
@@ -29,6 +25,14 @@
     "url": "https://github.com/holepunchto/react-native-bare-kit/issues"
   },
   "homepage": "https://github.com/holepunchto/react-native-bare-kit#readme",
+  "codegenConfig": {
+     "name": "BareKitSpec",
+     "type": "modules",
+     "jsSrcsDir": "specs",
+     "android": {
+       "javaPackageName": "to.holepunch.bare.kit.react"
+     }
+   },
   "dependencies": {
     "b4a": "^1.6.6",
     "bare-link": "^1.0.1",

@@ -1,11 +1,7 @@
 package to.holepunch.bare.kit.react;
 
-import com.facebook.react.bridge.BaseJavaModule;
-import com.facebook.react.bridge.NativeModule;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
-import com.facebook.react.bridge.ReactContext;
-import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableArray;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -13,8 +9,11 @@ import java.util.Base64;
 import java.util.HashMap;
 import to.holepunch.bare.kit.IPC;
 import to.holepunch.bare.kit.Worklet;
+import to.holepunch.bare.kit.react.NativeBareKitSpec;
 
-public class BareKitModule extends BaseJavaModule implements NativeModule {
+public class BareKitModule extends NativeBareKitSpec {
+  public static String NAME = "BareKit";
+
   private int id;
   private HashMap<Integer, BareKitModuleWorklet> worklets;
 
@@ -28,7 +27,7 @@ public class BareKitModule extends BaseJavaModule implements NativeModule {
   @Override
   public String
   getName() {
-    return "BareKit";
+    return NAME;
   }
 
   @Override
@@ -43,9 +42,9 @@ public class BareKitModule extends BaseJavaModule implements NativeModule {
     worklets.clear();
   }
 
-  @ReactMethod
-  public void
-  start(String filename, String source, ReadableArray arguments, double memoryLimit, String assets, Promise promise) {
+  @Override
+  public double
+  start(String filename, String source, ReadableArray arguments, double memoryLimit, String assets) {
     int id = ++this.id;
 
     ByteBuffer data;
@@ -60,10 +59,10 @@ public class BareKitModule extends BaseJavaModule implements NativeModule {
 
     this.worklets.put(id, worklet);
 
-    promise.resolve(id);
+    return id;
   }
 
-  @ReactMethod
+  @Override
   public void
   read(double id, Promise promise) {
     BareKitModuleWorklet worklet = worklets.get((int) id);
@@ -89,7 +88,7 @@ public class BareKitModule extends BaseJavaModule implements NativeModule {
     }
   }
 
-  @ReactMethod
+  @Override
   public void
   write(double id, String data, Promise promise) {
     BareKitModuleWorklet worklet = worklets.get((int) id);
@@ -113,51 +112,36 @@ public class BareKitModule extends BaseJavaModule implements NativeModule {
     }
   }
 
-  @ReactMethod
+  @Override
   public void
-  suspend(double id, double linger, Promise promise) {
+  suspend(double id, double linger) {
     BareKitModuleWorklet worklet = worklets.get((int) id);
 
-    if (worklet == null) {
-      promise.reject("INVALID_ID", new Error("No such worklet found"));
-      return;
-    }
+    if (worklet == null) return;
 
     worklet.suspend((int) linger);
-
-    promise.resolve(null);
   }
 
-  @ReactMethod
+  @Override
   public void
-  resume(double id, Promise promise) {
+  resume(double id) {
     BareKitModuleWorklet worklet = worklets.get((int) id);
 
-    if (worklet == null) {
-      promise.reject("INVALID_ID", new Error("No such worklet found"));
-      return;
-    }
+    if (worklet == null) return;
 
     worklet.resume();
-
-    promise.resolve(null);
   }
 
-  @ReactMethod
+  @Override
   public void
-  terminate(double id, Promise promise) {
+  terminate(double id) {
     BareKitModuleWorklet worklet = worklets.get((int) id);
 
-    if (worklet == null) {
-      promise.reject("INVALID_ID", new Error("No such worklet found"));
-      return;
-    }
+    if (worklet == null) return;
 
     worklet.terminate();
 
     worklets.remove(worklet.id);
-
-    promise.resolve(null);
   }
 
   private String

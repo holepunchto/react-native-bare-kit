@@ -3,6 +3,8 @@
 
 #import "BareKitModule.h"
 
+using namespace facebook::react;
+
 @interface BareKitModuleWorklet : NSObject
 
 @end
@@ -50,8 +52,8 @@
   return self;
 }
 
-- (void)_suspend:(NSNumber *)linger {
-  [_worklet suspendWithLinger:linger.intValue];
+- (void)_suspend:(int)linger {
+  [_worklet suspendWithLinger:linger];
 }
 
 - (void)_resume {
@@ -91,34 +93,32 @@ RCT_EXPORT_MODULE(BareKit)
   [_worklets removeAllObjects];
 }
 
-RCT_EXPORT_METHOD(start : (NSString *) filename
-                  source : (NSString *) source
-                  arguments : (NSArray *) arguments
-                  memoryLimit : (nonnull NSNumber *) memoryLimit
-                  assets : (NSString *) assets
-                  resolve : (RCTPromiseResolveBlock) resolve
-                  reject : (RCTPromiseRejectBlock) reject) {
+- (NSNumber *)start:(NSString *)filename
+             source:(NSString *)source
+               args:(NSArray *)args
+        memoryLimit:(double)memoryLimit
+             assets:(NSString *)assets {
   NSNumber *id = @(++_id);
 
   BareKitModuleWorklet *worklet = [[BareKitModuleWorklet alloc] initWithModule:self
                                                                             id:id
                                                                       filename:filename
                                                                         source:source
-                                                                     arguments:arguments
-                                                                   memoryLimit:memoryLimit
+                                                                     arguments:args
+                                                                   memoryLimit:@(memoryLimit)
                                                                         assets:assets];
 
   _worklets[id] = worklet;
 
-  resolve(id);
+  return id;
 }
 
-RCT_EXPORT_METHOD(read : (nonnull NSNumber *) id
-                  resolve : (RCTPromiseResolveBlock) resolve
-                  reject : (RCTPromiseRejectBlock) reject) {
-  BareKitModuleWorklet *worklet = _worklets[id];
+- (void)read:(double)id
+     resolve:(RCTPromiseResolveBlock)resolve
+      reject:(RCTPromiseRejectBlock)reject {
+  BareKitModuleWorklet *worklet = _worklets[@(id)];
 
-  if (worklet == nil) return reject(@"INVALID_ID", @"No such worklet found", nil);
+  if (worklet == nil) return resolve(nil);
 
   NSData *data = [worklet->_ipc read];
 
@@ -135,13 +135,13 @@ RCT_EXPORT_METHOD(read : (nonnull NSNumber *) id
   };
 }
 
-RCT_EXPORT_METHOD(write : (nonnull NSNumber *) id
-                  data : (NSString *) data
-                  resolve : (RCTPromiseResolveBlock) resolve
-                  reject : (RCTPromiseRejectBlock) reject) {
-  BareKitModuleWorklet *worklet = _worklets[id];
+- (void)write:(double)id
+         data:(NSString *)data
+      resolve:(RCTPromiseResolveBlock)resolve
+       reject:(RCTPromiseRejectBlock)reject {
+  BareKitModuleWorklet *worklet = _worklets[@(id)];
 
-  if (worklet == nil) return reject(@"INVALID_ID", @"No such worklet found", nil);
+  if (worklet == nil) return resolve(nil);
 
   NSData *decoded = [[NSData alloc] initWithBase64EncodedString:data options:0];
 
@@ -156,43 +156,35 @@ RCT_EXPORT_METHOD(write : (nonnull NSNumber *) id
   };
 }
 
-RCT_EXPORT_METHOD(suspend : (nonnull NSNumber *) id
-                  linger : (nonnull NSNumber *) linger
-                  resolve : (RCTPromiseResolveBlock) resolve
-                  reject : (RCTPromiseRejectBlock) reject) {
-  BareKitModuleWorklet *worklet = _worklets[id];
+- (void)suspend:(double)id
+         linger:(double)linger {
+  BareKitModuleWorklet *worklet = _worklets[@(id)];
 
-  if (worklet == nil) return reject(@"INVALID_ID", @"No such worklet found", nil);
+  if (worklet == nil) return;
 
   [worklet _suspend:linger];
-
-  resolve(nil);
 }
 
-RCT_EXPORT_METHOD(resume : (nonnull NSNumber *) id
-                  resolve : (RCTPromiseResolveBlock) resolve
-                  reject : (RCTPromiseRejectBlock) reject) {
-  BareKitModuleWorklet *worklet = _worklets[id];
+- (void)resume:(double)id {
+  BareKitModuleWorklet *worklet = _worklets[@(id)];
 
-  if (worklet == nil) return reject(@"INVALID_ID", @"No such worklet found", nil);
+  if (worklet == nil) return;
 
   [worklet _resume];
-
-  resolve(nil);
 }
 
-RCT_EXPORT_METHOD(terminate : (nonnull NSNumber *) id
-                  resolve : (RCTPromiseResolveBlock) resolve
-                  reject : (RCTPromiseRejectBlock) reject) {
-  BareKitModuleWorklet *worklet = _worklets[id];
+- (void)terminate:(double)id {
+  BareKitModuleWorklet *worklet = _worklets[@(id)];
 
-  if (worklet == nil) return reject(@"INVALID_ID", @"No such worklet found", nil);
+  if (worklet == nil) return;
 
   [worklet _terminate];
 
-  [_worklets removeObjectForKey:id];
+  [_worklets removeObjectForKey:@(id)];
+}
 
-  resolve(nil);
+- (std::shared_ptr<TurboModule>)getTurboModule:(const ObjCTurboModule::InitParams &)params {
+  return std::make_shared<NativeBareKitSpecJSI>(params);
 }
 
 @end
