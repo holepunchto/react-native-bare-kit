@@ -1,5 +1,5 @@
 #import <BareKitSpec/BareKitSpec.h>
 
-@interface BareKitModule : NSObject <NativeBareKitSpec>
+@interface BareKitModule : NativeBareKitSpecBase <NativeBareKitSpec>
 
 @end
