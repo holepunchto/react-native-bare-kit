@@ -24,7 +24,7 @@ IPC.on('data', (data) => console.log(data))
 IPC.write('Hello from Bare!')
 `
 
-await worklet.start('/app.js', source)
+worklet.start('/app.js', source)
 
 const { IPC } = worklet
 
