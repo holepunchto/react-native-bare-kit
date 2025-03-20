@@ -68,7 +68,7 @@ public class BareKitModule extends NativeBareKitSpec {
     BareKitModuleWorklet worklet = worklets.get((int) id);
 
     if (worklet == null) {
-      promise.reject("INVALID_ID", new Error("No such worklet found"));
+      promise.resolve(null);
       return;
     }
 
@@ -94,7 +94,7 @@ public class BareKitModule extends NativeBareKitSpec {
     BareKitModuleWorklet worklet = worklets.get((int) id);
 
     if (worklet == null) {
-      promise.reject("INVALID_ID", new Error("No such worklet found"));
+      promise.resolve(null);
       return;
     }
 

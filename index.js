@@ -8,7 +8,6 @@ class BareKitIPC extends Duplex {
     super()
 
     this._worklet = worklet
-
     this._pendingOpen = null
   }
 
@@ -142,11 +141,11 @@ exports.Worklet = class BareKitWorklet {
     }
   }
 
-  static async _onstateactive() {
+  static _onstateactive() {
     for (const [, worklet] of this._worklets) worklet.resume()
   }
 
-  static async _onstatebackground() {
+  static _onstatebackground() {
     for (const [, worklet] of this._worklets) worklet.suspend()
   }
 }
