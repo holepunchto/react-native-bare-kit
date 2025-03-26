@@ -1,6 +1,6 @@
 {
   "name": "react-native-bare-kit",
-  "version": "0.5.8",
+  "version": "0.5.9",
   "description": "Bare Kit for React Native",
   "exports": {
     ".": {
