@@ -65,6 +65,26 @@ exports.Worklet = class BareKitWorklet {
   constructor(opts = {}) {
     const { memoryLimit = 0, assets = null } = opts
 
+    if (typeof memoryLimit !== 'number') {
+      throw new TypeError(
+        'Memory limit must be a number. Received type ' +
+          typeof memoryLimit +
+          ' (' +
+          memoryLimit +
+          ')'
+      )
+    }
+
+    if (typeof assets !== 'string' && assets !== null) {
+      throw new TypeError(
+        'Asset path must be a string. Received type ' +
+          typeof assets +
+          ' (' +
+          assets +
+          ')'
+      )
+    }
+
     this._id = -1
     this._memoryLimit = memoryLimit
     this._assets = assets
@@ -76,6 +96,16 @@ exports.Worklet = class BareKitWorklet {
   }
 
   start(filename, source, encoding, args = []) {
+    if (typeof filename !== 'string') {
+      throw new TypeError(
+        'Filename must be a string. Received type ' +
+          typeof filename +
+          ' (' +
+          filename +
+          ')'
+      )
+    }
+
     if (Array.isArray(source)) {
       args = source
       source = null
@@ -90,6 +120,18 @@ exports.Worklet = class BareKitWorklet {
       }
     } else if (source) {
       source = b4a.toString(source, 'base64')
+    }
+
+    for (const arg of args) {
+      if (typeof arg !== 'string') {
+        throw new TypeError(
+          'Argument must be a string. Received type ' +
+            typeof arg +
+            ' (' +
+            arg +
+            ')'
+        )
+      }
     }
 
     let err = null
@@ -113,6 +155,16 @@ exports.Worklet = class BareKitWorklet {
   }
 
   suspend(linger = 0) {
+    if (typeof linger !== 'number') {
+      throw new TypeError(
+        'Linger time must be a number. Received type ' +
+          typeof linger +
+          ' (' +
+          linger +
+          ')'
+      )
+    }
+
     NativeBareKit.suspend(this._id, linger)
   }
 
