@@ -154,7 +154,7 @@ exports.Worklet = class BareKitWorklet {
     if (err) throw err
   }
 
-  suspend(linger = 0) {
+  suspend(linger = -1) {
     if (typeof linger !== 'number') {
       throw new TypeError(
         'Linger time must be a number. Received type ' +
