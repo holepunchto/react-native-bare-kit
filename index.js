@@ -89,6 +89,8 @@ exports.Worklet = class BareKitWorklet {
     this._memoryLimit = memoryLimit
     this._assets = assets
     this._ipc = new BareKitIPC(this)
+
+    this._onstatechange(AppState.currentState)
   }
 
   get IPC() {
@@ -184,21 +186,19 @@ exports.Worklet = class BareKitWorklet {
     return {}
   }
 
-  static _onstatechange(state) {
+  _onstatechange(state) {
     switch (state) {
       case 'active':
-        return this._onstateactive()
+        return this.resume()
       case 'background':
-        return this._onstatebackground()
+        return this.suspend()
     }
   }
 
-  static _onstateactive() {
-    for (const [, worklet] of this._worklets) worklet.resume()
-  }
-
-  static _onstatebackground() {
-    for (const [, worklet] of this._worklets) worklet.suspend()
+  static _onstatechange(state) {
+    for (const worklet of this._worklets.values()) {
+      worklet._onstatechange(state)
+    }
   }
 }
 
