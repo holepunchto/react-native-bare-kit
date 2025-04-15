@@ -89,8 +89,6 @@ exports.Worklet = class BareKitWorklet {
     this._memoryLimit = memoryLimit
     this._assets = assets
     this._ipc = new BareKitIPC(this)
-
-    this._onstatechange(AppState.currentState)
   }
 
   get IPC() {
@@ -154,6 +152,8 @@ exports.Worklet = class BareKitWorklet {
     this._ipc._continueOpen(err)
 
     if (err) throw err
+
+    this._onstatechange(AppState.currentState)
   }
 
   suspend(linger = -1) {
