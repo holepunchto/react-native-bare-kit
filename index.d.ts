@@ -1,4 +1,5 @@
 import type { Duplex } from 'streamx'
+import type { AppStateStatus } from 'react-native'
 
 export class Worklet {
   IPC: Duplex
@@ -17,5 +18,10 @@ export class Worklet {
 
   suspend(linger?: number): void
   resume(): void
+  update(state?: AppStateStatus): void
   terminate(): void
+
+  static suspend(linger?: number): void
+  static resume(): void
+  static update(state?: AppStateStatus): void
 }
