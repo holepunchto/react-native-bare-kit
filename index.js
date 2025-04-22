@@ -153,7 +153,7 @@ exports.Worklet = class BareKitWorklet {
 
     if (err) throw err
 
-    this._onstatechange(AppState.currentState)
+    this.update()
   }
 
   suspend(linger = -1) {
