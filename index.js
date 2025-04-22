@@ -186,6 +186,21 @@ exports.Worklet = class BareKitWorklet {
     }
   }
 
+  update(state = AppState.currentState) {
+    switch (state) {
+      case 'active':
+        return this.resume()
+      case 'background':
+        return this.suspend()
+    }
+  }
+
+  static update(state) {
+    for (const worklet of this._worklets.values()) {
+      worklet.update(state)
+    }
+  }
+
   terminate() {
     try {
       NativeBareKit.terminate(this._id)
@@ -197,23 +212,8 @@ exports.Worklet = class BareKitWorklet {
   toJSON() {
     return {}
   }
-
-  _onstatechange(state) {
-    switch (state) {
-      case 'active':
-        return this.resume()
-      case 'background':
-        return this.suspend()
-    }
-  }
-
-  static _onstatechange(state) {
-    for (const worklet of this._worklets.values()) {
-      worklet._onstatechange(state)
-    }
-  }
 }
 
 const Worklet = exports.Worklet
 
-AppState.addEventListener('change', Worklet._onstatechange.bind(Worklet))
+AppState.addEventListener('change', Worklet.update.bind(Worklet))
