@@ -170,8 +170,20 @@ exports.Worklet = class BareKitWorklet {
     NativeBareKit.suspend(this._id, linger)
   }
 
+  static suspend(linger) {
+    for (const worklet of this._worklets.values()) {
+      worklet.suspend(linger)
+    }
+  }
+
   resume() {
     NativeBareKit.resume(this._id)
+  }
+
+  static resume() {
+    for (const worklet of this._worklets.values()) {
+      worklet.resume()
+    }
   }
 
   terminate() {
