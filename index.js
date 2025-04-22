@@ -153,7 +153,7 @@ exports.Worklet = class BareKitWorklet {
 
     if (err) throw err
 
-    this._onstatechange(AppState.currentState)
+    this.update()
   }
 
   suspend(linger = -1) {
@@ -170,8 +170,35 @@ exports.Worklet = class BareKitWorklet {
     NativeBareKit.suspend(this._id, linger)
   }
 
+  static suspend(linger) {
+    for (const worklet of this._worklets.values()) {
+      worklet.suspend(linger)
+    }
+  }
+
   resume() {
     NativeBareKit.resume(this._id)
+  }
+
+  static resume() {
+    for (const worklet of this._worklets.values()) {
+      worklet.resume()
+    }
+  }
+
+  update(state = AppState.currentState) {
+    switch (state) {
+      case 'active':
+        return this.resume()
+      case 'background':
+        return this.suspend()
+    }
+  }
+
+  static update(state) {
+    for (const worklet of this._worklets.values()) {
+      worklet.update(state)
+    }
   }
 
   terminate() {
@@ -185,23 +212,8 @@ exports.Worklet = class BareKitWorklet {
   toJSON() {
     return {}
   }
-
-  _onstatechange(state) {
-    switch (state) {
-      case 'active':
-        return this.resume()
-      case 'background':
-        return this.suspend()
-    }
-  }
-
-  static _onstatechange(state) {
-    for (const worklet of this._worklets.values()) {
-      worklet._onstatechange(state)
-    }
-  }
 }
 
 const Worklet = exports.Worklet
 
-AppState.addEventListener('change', Worklet._onstatechange.bind(Worklet))
+AppState.addEventListener('change', Worklet.update.bind(Worklet))
