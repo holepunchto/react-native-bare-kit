@@ -120,11 +120,13 @@ RCT_EXPORT_MODULE(BareKit)
 
   if (worklet == nil) return resolve(nil);
 
-  NSData *data = [worklet->_ipc read];
+  BareIPC *ipc = worklet->_ipc;
+
+  NSData *data = [ipc read];
 
   if (data) return resolve([data base64EncodedStringWithOptions:0]);
 
-  worklet->_ipc.readable = ^(BareIPC *ipc) {
+  ipc.readable = ^(BareIPC *ipc) {
     NSData *data = [ipc read];
 
     if (data == nil) return;
@@ -136,24 +138,38 @@ RCT_EXPORT_MODULE(BareKit)
 }
 
 - (void)write:(double)id
-         data:(NSString *)data
+         data:(NSString *)string
       resolve:(RCTPromiseResolveBlock)resolve
        reject:(RCTPromiseRejectBlock)reject {
   BareKitModuleWorklet *worklet = _worklets[@(id)];
 
   if (worklet == nil) return resolve(nil);
 
-  NSData *decoded = [[NSData alloc] initWithBase64EncodedString:data options:0];
+  BareIPC *ipc = worklet->_ipc;
 
-  if ([worklet->_ipc write:decoded]) return resolve(nil);
+  NSData *data = [[NSData alloc] initWithBase64EncodedString:string options:0];
 
-  worklet->_ipc.writable = ^(BareIPC *ipc) {
-    if ([ipc write:decoded]) {
-      ipc.writable = nil;
+  NSInteger written = [ipc write:data];
 
-      resolve(nil);
-    }
-  };
+  if (written == data.length) {
+    resolve(nil);
+  } else {
+    __block NSData *remaining = data;
+
+    remaining = [data subdataWithRange:NSMakeRange(written, remaining.length - written)];
+
+    ipc.writable = ^(BareIPC *ipc) {
+      NSInteger written = [ipc write:remaining];
+
+      if (written == remaining.length) {
+        ipc.writable = nil;
+
+        resolve(nil);
+      } else {
+        remaining = [remaining subdataWithRange:NSMakeRange(written, remaining.length - written)];
+      }
+    };
+  }
 }
 
 - (void)suspend:(double)id

@@ -103,12 +103,16 @@ public class BareKitModule extends NativeBareKitSpec {
 
   private void
   write(IPC ipc, ByteBuffer data, Promise promise) {
-    if (ipc.write(data)) {
+    int written = ipc.write(data);
+
+    if (written == data.limit()) {
       ipc.writable(null);
 
       promise.resolve(null);
     } else {
-      ipc.writable(() -> write(ipc, data, promise));
+      data.position(written);
+
+      ipc.writable(() -> write(ipc, data.slice(), promise));
     }
   }
 
