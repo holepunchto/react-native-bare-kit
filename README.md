@@ -8,9 +8,6 @@ npm i react-native-bare-kit
 
 ## Usage
 
-> [!IMPORTANT]
-> You may experience problems using the library on an emulated Android device under QEMU due to https://github.com/holepunchto/libjs/issues/4. If you encounter crashes, try running your app on a real Android device instead.
-
 ```js
 import { Worklet } from 'react-native-bare-kit'
 
