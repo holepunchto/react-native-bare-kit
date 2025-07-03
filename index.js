@@ -1,47 +1,75 @@
 const { AppState } = require('react-native')
 const { Duplex } = require('streamx')
-const b4a = require('b4a')
 const { default: NativeBareKit } = require('./specs/NativeBareKit')
+
+const constants = {
+  STARTED: 0x1,
+  TERMINATED: 0x2
+}
 
 class BareKitIPC extends Duplex {
   constructor(worklet) {
     super()
 
     this._worklet = worklet
+    this._readable = false
+    this._writable = false
+    this._poll = this._poll.bind(this)
+
     this._pendingOpen = null
+    this._pendingRead = null
+    this._pendingWrite = null
   }
 
   _open(cb) {
-    if (this._worklet._id === -1) this._pendingOpen = cb
-    else cb(null)
+    if (this._worklet._state & constants.STARTED) cb(null)
+    else this._pendingOpen = cb
   }
 
-  async _read(cb) {
-    let err = null
-    try {
-      const data = await NativeBareKit.read(this._worklet._id)
-
-      this.push(b4a.from(data, 'base64'))
-    } catch (e) {
-      err = e
-    }
-
-    cb(err)
+  _update() {
+    NativeBareKit.update(
+      this._worklet._handle,
+      this._pendingRead !== null,
+      this._pendingWrite !== null
+    )
   }
 
-  async _write(data, cb) {
-    let err = null
-    try {
-      if (typeof data === 'string') data = b4a.from(data)
+  _poll(readable, writable) {
+    if (readable) this._continueRead()
+    if (writable) this._continueWrite()
+  }
 
-      data = b4a.toString(data, 'base64')
+  _read(cb) {
+    const data = NativeBareKit.read(this._worklet._handle)
 
-      await NativeBareKit.write(this._worklet._id, data)
-    } catch (e) {
-      err = e
+    if (data) {
+      this.push(new Uint8Array(data))
+      cb(null)
+    } else {
+      this._pendingRead = cb
+      this._update()
+    }
+  }
+
+  _write(data, cb) {
+    let written
+
+    if (typeof data === 'string') {
+      written = NativeBareKit.writeUTF8(this._worklet._handle, data)
+    } else {
+      written = NativeBareKit.write(
+        this._worklet._handle,
+        data.buffer,
+        data.byteOffset,
+        data.byteLength
+      )
     }
 
-    cb(err)
+    if (written === data.byteLength) cb(null)
+    else {
+      this._pendingWrite = [data.subarray(written), cb]
+      this._update()
+    }
   }
 
   _continueOpen(err) {
@@ -54,13 +82,29 @@ class BareKitIPC extends Duplex {
     }
   }
 
+  _continueRead() {
+    if (this._pendingRead === null) return
+    const cb = this._pendingRead
+    this._pendingRead = null
+    this._update()
+    this._read(cb)
+  }
+
+  _continueWrite() {
+    if (this._pendingWrite === null) return
+    const [data, cb] = this._pendingWrite
+    this._pendingWrite = null
+    this._update()
+    this._write(data, cb)
+  }
+
   toJSON() {
     return {}
   }
 }
 
 exports.Worklet = class BareKitWorklet {
-  static _worklets = new Map()
+  static _worklets = new Set()
 
   constructor(opts = {}) {
     const { memoryLimit = 0, assets = null } = opts
@@ -85,17 +129,18 @@ exports.Worklet = class BareKitWorklet {
       )
     }
 
-    this._id = -1
-    this._memoryLimit = memoryLimit
-    this._assets = assets
+    this._state = 0
+    this._source = null
     this._ipc = new BareKitIPC(this)
+
+    this._handle = NativeBareKit.init(memoryLimit, assets, this._ipc._poll)
   }
 
   get IPC() {
     return this._ipc
   }
 
-  start(filename, source, encoding, args = []) {
+  start(filename, source, args = []) {
     if (typeof filename !== 'string') {
       throw new TypeError(
         'Filename must be a string. Received type ' +
@@ -109,17 +154,20 @@ exports.Worklet = class BareKitWorklet {
     if (Array.isArray(source)) {
       args = source
       source = null
-    } else if (Array.isArray(encoding)) {
-      args = encoding
-      encoding = null
     }
 
-    if (typeof source === 'string') {
-      if (encoding !== 'base64') {
-        source = b4a.toString(b4a.from(source, encoding), 'base64')
-      }
-    } else if (source) {
-      source = b4a.toString(source, 'base64')
+    if (
+      source !== null &&
+      typeof source !== 'string' &&
+      !ArrayBuffer.isView(source)
+    ) {
+      throw new TypeError(
+        'Source must be a string or TypedArray. Received type ' +
+          typeof source +
+          ' (' +
+          source +
+          ')'
+      )
     }
 
     for (const arg of args) {
@@ -136,15 +184,23 @@ exports.Worklet = class BareKitWorklet {
 
     let err = null
     try {
-      this._id = NativeBareKit.start(
-        filename,
-        source,
-        args,
-        this._memoryLimit,
-        this._assets
-      )
+      if (typeof source === 'string') {
+        NativeBareKit.startUTF8(this._handle, filename, source, args)
+      } else {
+        NativeBareKit.start(
+          this._handle,
+          filename,
+          source.buffer,
+          source.byteOffset,
+          source.byteLength,
+          args
+        )
+      }
 
-      BareKitWorklet._worklets.set(this._id, this)
+      this._state |= constants.STARTED
+      this._source = source
+
+      BareKitWorklet._worklets.add(this)
     } catch (e) {
       err = e
     }
@@ -167,21 +223,21 @@ exports.Worklet = class BareKitWorklet {
       )
     }
 
-    NativeBareKit.suspend(this._id, linger)
+    NativeBareKit.suspend(this._handle, linger)
   }
 
   static suspend(linger) {
-    for (const worklet of this._worklets.values()) {
+    for (const worklet of this._worklets) {
       worklet.suspend(linger)
     }
   }
 
   resume() {
-    NativeBareKit.resume(this._id)
+    NativeBareKit.resume(this._handle)
   }
 
   static resume() {
-    for (const worklet of this._worklets.values()) {
+    for (const worklet of this._worklets) {
       worklet.resume()
     }
   }
@@ -196,17 +252,19 @@ exports.Worklet = class BareKitWorklet {
   }
 
   static update(state) {
-    for (const worklet of this._worklets.values()) {
+    for (const worklet of this._worklets) {
       worklet.update(state)
     }
   }
 
   terminate() {
-    try {
-      NativeBareKit.terminate(this._id)
-    } finally {
-      this._id = -1
-    }
+    NativeBareKit.terminate(this._handle)
+
+    this._state |= constants.TERMINATED
+    this._source = null
+    this._handle = null
+
+    BareKitWorklet._worklets.delete(this)
   }
 
   toJSON() {

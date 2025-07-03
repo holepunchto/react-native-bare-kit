@@ -1,0 +1,45 @@
+#pragma once
+
+#include <memory>
+#include <optional>
+
+#include "BareKitSpecJSI.h"
+
+namespace facebook::react {
+
+class BareKitModule : public NativeBareKitCxxSpec<BareKitModule> {
+public:
+  BareKitModule(std::shared_ptr<CallInvoker> jsInvoker);
+
+  jsi::Object
+  init(jsi::Runtime &rt, double memoryLimit, std::optional<jsi::String> assets, jsi::Function poll);
+
+  void
+  update(jsi::Runtime &rt, jsi::Object handle, bool readable, bool writable);
+
+  void
+  start(jsi::Runtime &rt, jsi::Object handle, jsi::String filename, jsi::Object source, double offset, double length, jsi::Array args);
+
+  void
+  startUTF8(jsi::Runtime &rt, jsi::Object handle, jsi::String filename, jsi::String source, jsi::Array args);
+
+  std::optional<jsi::Object>
+  read(jsi::Runtime &rt, jsi::Object handle);
+
+  double
+  write(jsi::Runtime &rt, jsi::Object handle, jsi::Object data, double offset, double length);
+
+  double
+  writeUTF8(jsi::Runtime &rt, jsi::Object handle, jsi::String data);
+
+  void
+  suspend(jsi::Runtime &rt, jsi::Object handle, double linger);
+
+  void
+  resume(jsi::Runtime &rt, jsi::Object handle);
+
+  void
+  terminate(jsi::Runtime &rt, jsi::Object handle);
+};
+
+} // namespace facebook::react

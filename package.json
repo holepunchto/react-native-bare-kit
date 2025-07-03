@@ -10,6 +10,7 @@
     "*.podspec",
     "android",
     "ios",
+    "shared",
     "specs"
   ],
   "scripts": {
@@ -31,10 +32,15 @@
     "jsSrcsDir": "specs",
     "android": {
       "javaPackageName": "to.holepunch.bare.kit.react"
+    },
+    "ios": {
+      "modulesConformingToProtocol": "RCTTurboModule",
+      "modulesProvider": {
+        "BareKit": "BareKitModuleProvider"
+      }
     }
   },
   "dependencies": {
-    "b4a": "^1.6.6",
     "bare-link": "^1.0.1",
     "streamx": "^2.21.0"
   },
