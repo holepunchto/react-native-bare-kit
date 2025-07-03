@@ -195,10 +195,11 @@ exports.Worklet = class BareKitWorklet {
           source.byteLength,
           args
         )
+
+        this._source = source // Keep a reference for lifetime management
       }
 
       this._state |= constants.STARTED
-      this._source = source
 
       BareKitWorklet._worklets.add(this)
     } catch (e) {

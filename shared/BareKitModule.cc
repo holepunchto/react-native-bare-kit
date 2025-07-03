@@ -163,7 +163,7 @@ static inline uv_buf_t
 jsi_to_buffer(Runtime &rt, const String &value) {
   auto utf8 = value.utf8(rt);
 
-  return {reinterpret_cast<char *>(strdup(utf8.c_str())), utf8.size()};
+  return {strdup(utf8.c_str()), utf8.size()};
 }
 
 static inline char *
@@ -212,6 +212,19 @@ BareKitModule::init(Runtime &rt, double memoryLimit, std::optional<String> asset
   return Object::createFromHostObject(rt, std::move(worklet));
 }
 
+namespace {
+
+static void
+bare_kit_module__on_poll(bare_ipc_poll_t *poll, int events) {
+  auto worklet = static_cast<BareKitWorklet *>(bare_ipc_poll_get_data(poll));
+
+  worklet->on_poll.call([=](jsi::Runtime &rt, jsi::Function &function) {
+    function.call(rt, (events & bare_ipc_readable) != 0, (events & bare_ipc_writable) != 0);
+  });
+}
+
+} // namespace
+
 void
 BareKitModule::update(Runtime &rt, Object handle, bool readable, bool writable) {
   int err;
@@ -224,18 +237,12 @@ BareKitModule::update(Runtime &rt, Object handle, bool readable, bool writable) 
   if (writable) events |= bare_ipc_writable;
 
   if (events) {
-    err = bare_ipc_poll_start(worklet->poll, events, [](bare_ipc_poll_t *poll, int events) {
-      auto worklet = static_cast<BareKitWorklet *>(bare_ipc_poll_get_data(poll));
-
-      worklet->on_poll.call([=](jsi::Runtime &rt, jsi::Function &function) {
-        function.call(rt, (events & bare_ipc_readable) != 0, (events & bare_ipc_writable) != 0);
-      });
-    });
+    err = bare_ipc_poll_start(worklet->poll, events, bare_kit_module__on_poll);
+    assert(err == 0);
   } else {
     err = bare_ipc_poll_stop(worklet->poll);
+    assert(err == 0);
   }
-
-  assert(err == 0);
 }
 
 void
@@ -270,6 +277,15 @@ BareKitModule::start(Runtime &rt, Object handle, String filename, Object source,
   assert(err == 0);
 }
 
+namespace {
+
+static void
+bare_kit_module__on_finalize(bare_worklet_t *, const uv_buf_t *source, void *) {
+  free(source->base);
+}
+
+} // namespace
+
 void
 BareKitModule::startUTF8(Runtime &rt, Object handle, String filename, String source, Array args) {
   int err;
@@ -286,11 +302,10 @@ BareKitModule::startUTF8(Runtime &rt, Object handle, String filename, String sou
     argv[i] = jsi_to_string(rt, args.getValueAtIndex(rt, i).getString(rt));
   }
 
-  err = bare_worklet_start(worklet->worklet, string, &buffer, nullptr, nullptr, argv.size(), argv.data());
+  err = bare_worklet_start(worklet->worklet, string, &buffer, bare_kit_module__on_finalize, nullptr, argv.size(), argv.data());
   assert(err == 0);
 
   free(string);
-  free(buffer.base);
 
   for (size_t i = 0, n = argv.size(); i < n; i++) {
     free(const_cast<char *>(argv[i]));
