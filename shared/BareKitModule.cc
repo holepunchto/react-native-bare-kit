@@ -80,12 +80,6 @@ void
 bare_ipc_destroy(bare_ipc_t *ipc);
 
 int
-bare_ipc_get_incoming(bare_ipc_t *ipc);
-
-int
-bare_ipc_get_outgoing(bare_ipc_t *ipc);
-
-int
 bare_ipc_read(bare_ipc_t *ipc, void **data, size_t *len);
 
 int
@@ -105,9 +99,6 @@ bare_ipc_poll_get_data(bare_ipc_poll_t *poll);
 
 void
 bare_ipc_poll_set_data(bare_ipc_poll_t *poll, void *data);
-
-bare_ipc_t *
-bare_ipc_poll_get_ipc(bare_ipc_poll_t *poll);
 
 int
 bare_ipc_poll_start(bare_ipc_poll_t *poll, int events, bare_ipc_poll_cb cb);
@@ -406,6 +397,14 @@ BareKitModule::terminate(Runtime &rt, Object handle) {
 
   err = bare_worklet_terminate(worklet->worklet);
   assert(err == 0);
+
+  bare_ipc_poll_destroy(worklet->poll);
+  bare_ipc_destroy(worklet->ipc);
+  bare_worklet_destroy(worklet->worklet);
+
+  free(worklet->worklet);
+  free(worklet->ipc);
+  free(worklet->poll);
 }
 
 } // namespace facebook::react
