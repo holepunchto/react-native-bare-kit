@@ -9,16 +9,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class BareKitPackage extends BaseReactPackage {
-  public static String NAME = BareKitModule.NAME;
+  public static String NAME = "BareKit";
 
   @Override
   public NativeModule
   getModule(String name, ReactApplicationContext context) {
-    if (name.equals(NAME)) {
-      return new BareKitModule(context);
-    } else {
-      return null;
-    }
+    return null;
   }
 
   @Override
@@ -26,7 +22,7 @@ public class BareKitPackage extends BaseReactPackage {
   getReactModuleInfoProvider() {
     return () -> {
       Map<String, ReactModuleInfo> map = new HashMap<>();
-      map.put(NAME, new ReactModuleInfo(NAME, NAME, false, false, false, true));
+      map.put(NAME, new ReactModuleInfo(NAME, NAME, false, false, true, true));
       return map;
     };
   }

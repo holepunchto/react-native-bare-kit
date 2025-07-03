@@ -19,6 +19,12 @@ android {
   defaultConfig {
     minSdk 28
     targetSdk 34
+
+    externalNativeBuild {
+      cmake {
+        arguments "-DANDROID_STL=c++_shared"
+      }
+    }
   }
 
   sourceSets {
@@ -31,6 +37,12 @@ android {
   buildTypes {
     release {
       minifyEnabled false
+    }
+  }
+
+  externalNativeBuild {
+    cmake {
+      path "CMakeLists.txt"
     }
   }
 }
