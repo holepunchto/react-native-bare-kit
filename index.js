@@ -67,7 +67,12 @@ class BareKitIPC extends Duplex {
 
     if (written === data.byteLength) cb(null)
     else {
-      this._pendingWrite = [data.subarray(written), cb]
+      this._pendingWrite = [
+        typeof data === 'string'
+          ? data.substring(written)
+          : data.subarray(written),
+        cb
+      ]
       this._update()
     }
   }
