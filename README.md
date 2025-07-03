@@ -10,24 +10,23 @@ npm i react-native-bare-kit
 
 ```js
 import { Worklet } from 'react-native-bare-kit'
+import b4a from 'b4a'
 
 const worklet = new Worklet()
 
 const source = `\
 const { IPC } = BareKit
 
-IPC.setEncoding('utf8')
-IPC.on('data', (data) => console.log(data))
-IPC.write('Hello from Bare!')
+IPC.on('data', (data) => console.log(data.toString()))
+IPC.write(Buffer.from('Hello from Bare!'))
 `
 
 worklet.start('/app.js', source)
 
 const { IPC } = worklet
 
-IPC.setEncoding('utf8')
-IPC.on('data', (data) => console.log(data))
-IPC.write('Hello from React Native!')
+IPC.on('data', (data) => console.log(b4a.toString(data)))
+IPC.write(b4a.from('Hello from React Native!'))
 ```
 
 Refer to <https://github.com/holepunchto/bare-expo> for an example of using the library in an Expo application.
