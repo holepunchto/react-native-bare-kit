@@ -12,8 +12,6 @@ class BareKitIPC extends Duplex {
     super()
 
     this._worklet = worklet
-    this._readable = false
-    this._writable = false
     this._poll = this._poll.bind(this)
 
     this._pendingOpen = null
