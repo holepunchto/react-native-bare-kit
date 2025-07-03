@@ -25,7 +25,6 @@ typedef struct bare_ipc_s bare_ipc_t;
 typedef struct bare_ipc_poll_s bare_ipc_poll_t;
 
 typedef void (*bare_worklet_finalize_cb)(bare_worklet_t *, const uv_buf_t *source, void *finalize_hint);
-typedef void (*bare_worklet_idle_cb)(bare_worklet_t *);
 typedef void (*bare_ipc_poll_cb)(bare_ipc_poll_t *, int events);
 
 struct bare_worklet_options_s {
@@ -62,7 +61,7 @@ int
 bare_worklet_start(bare_worklet_t *worklet, const char *filename, const uv_buf_t *source, bare_worklet_finalize_cb finalize, void *finalize_hint, int argc, const char *argv[]);
 
 int
-bare_worklet_suspend(bare_worklet_t *worklet, int linger, bare_worklet_idle_cb cb);
+bare_worklet_suspend(bare_worklet_t *worklet, int linger);
 
 int
 bare_worklet_resume(bare_worklet_t *worklet);
@@ -355,7 +354,7 @@ BareKitModule::suspend(Runtime &rt, Object handle, double linger) {
 
   auto worklet = handle.getHostObject<BareKitWorklet>(rt);
 
-  err = bare_worklet_suspend(worklet->worklet, int(linger), nullptr);
+  err = bare_worklet_suspend(worklet->worklet, int(linger));
   assert(err == 0);
 }
 
