@@ -9,12 +9,6 @@ export class Worklet {
   start(filename: string, args?: string[]): void
   start(filename: string, source: Uint8Array, args?: string[]): void
   start(filename: string, source: string, args?: string[]): void
-  start(
-    filename: string,
-    source: string,
-    encoding: string,
-    args?: string[]
-  ): void
 
   suspend(linger?: number): void
   resume(): void
