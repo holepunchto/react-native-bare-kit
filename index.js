@@ -52,27 +52,16 @@ class BareKitIPC extends Duplex {
   }
 
   _write(data, cb) {
-    let written
-
-    if (typeof data === 'string') {
-      written = NativeBareKit.writeUTF8(this._worklet._handle, data)
-    } else {
-      written = NativeBareKit.write(
-        this._worklet._handle,
-        data.buffer,
-        data.byteOffset,
-        data.byteLength
-      )
-    }
+    const written = NativeBareKit.write(
+      this._worklet._handle,
+      data.buffer,
+      data.byteOffset,
+      data.byteLength
+    )
 
     if (written === data.byteLength) cb(null)
     else {
-      this._pendingWrite = [
-        typeof data === 'string'
-          ? data.substring(written)
-          : data.subarray(written),
-        cb
-      ]
+      this._pendingWrite = [data.subarray(written), cb]
       this._update()
     }
   }

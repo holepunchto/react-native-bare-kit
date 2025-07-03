@@ -349,26 +349,6 @@ BareKitModule::write(Runtime &rt, Object handle, Object data, double offset, dou
   return double(err);
 }
 
-double
-BareKitModule::writeUTF8(Runtime &rt, Object handle, String data) {
-  int err;
-
-  auto worklet = handle.getHostObject<BareKitWorklet>(rt);
-
-  auto buffer = jsi_to_buffer(rt, data);
-
-  err = bare_ipc_write(worklet->ipc, buffer.base, buffer.len);
-  assert(err >= 0 || err == bare_ipc_would_block);
-
-  free(buffer.base);
-
-  if (err == bare_ipc_would_block) {
-    return 0;
-  }
-
-  return double(err);
-}
-
 void
 BareKitModule::suspend(Runtime &rt, Object handle, double linger) {
   int err;

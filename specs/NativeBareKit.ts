@@ -30,8 +30,6 @@ export interface Spec extends TurboModule {
 
   write(handle: Object, data: Object, offset: number, length: number): number
 
-  writeUTF8(handle: Object, data: string): number
-
   suspend(handle: Object, linger: number): void
 
   resume(handle: Object): void

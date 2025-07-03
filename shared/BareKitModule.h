@@ -29,9 +29,6 @@ public:
   double
   write(jsi::Runtime &rt, jsi::Object handle, jsi::Object data, double offset, double length);
 
-  double
-  writeUTF8(jsi::Runtime &rt, jsi::Object handle, jsi::String data);
-
   void
   suspend(jsi::Runtime &rt, jsi::Object handle, double linger);
 
