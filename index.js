@@ -33,6 +33,7 @@ class BareKitIPC extends Duplex {
   }
 
   _poll(readable, writable) {
+    if (this._worklet._state & constants.TERMINATED) return
     if (readable) this._continueRead()
     if (writable) this._continueWrite()
   }
@@ -251,6 +252,7 @@ exports.Worklet = class BareKitWorklet {
   }
 
   terminate() {
+    this._ipc.destroy()
     NativeBareKit.terminate(this._handle)
 
     this._state |= constants.TERMINATED
