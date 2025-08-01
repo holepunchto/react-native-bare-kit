@@ -252,11 +252,11 @@ exports.Worklet = class BareKitWorklet {
   }
 
   get started() {
-    return this._state === constants.STARTED
+    return (this._state & constants.STARTED) !== 0
   }
 
   get terminated() {
-    return this._state === constants.TERMINATED
+    return (this._state & constants.TERMINATED) !== 0
   }
 
   terminate() {
