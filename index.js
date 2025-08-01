@@ -263,6 +263,7 @@ exports.Worklet = class BareKitWorklet {
 
   terminate() {
     this._ipc.destroy()
+
     NativeBareKit.terminate(this._handle)
 
     this._state |= constants.TERMINATED
