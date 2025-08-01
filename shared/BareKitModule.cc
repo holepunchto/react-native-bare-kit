@@ -236,7 +236,37 @@ BareKitModule::update(Runtime &rt, Object handle, bool readable, bool writable) 
 }
 
 void
-BareKitModule::start(Runtime &rt, Object handle, String filename, Object source, double offset, double length, Array args) {
+BareKitModule::startFile(Runtime &rt, Object handle, String filename, Array args) {
+  int err;
+
+  auto worklet = handle.getHostObject<BareKitWorklet>(rt);
+
+  auto string = jsi_to_string(rt, filename);
+
+  auto argv = std::vector<const char *>(args.size(rt));
+
+  for (size_t i = 0, n = argv.size(); i < n; i++) {
+    argv[i] = jsi_to_string(rt, args.getValueAtIndex(rt, i).getString(rt));
+  }
+
+  err = bare_worklet_start(worklet->worklet, string, nullptr, nullptr, nullptr, argv.size(), argv.data());
+  assert(err == 0);
+
+  free(string);
+
+  for (size_t i = 0, n = argv.size(); i < n; i++) {
+    free(const_cast<char *>(argv[i]));
+  }
+
+  err = bare_ipc_init(worklet->ipc, worklet->worklet);
+  assert(err == 0);
+
+  err = bare_ipc_poll_init(worklet->poll, worklet->ipc);
+  assert(err == 0);
+}
+
+void
+BareKitModule::startBytes(Runtime &rt, Object handle, String filename, Object source, double offset, double length, Array args) {
   int err;
 
   auto worklet = handle.getHostObject<BareKitWorklet>(rt);
