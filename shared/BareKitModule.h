@@ -18,7 +18,10 @@ public:
   update(jsi::Runtime &rt, jsi::Object handle, bool readable, bool writable);
 
   void
-  start(jsi::Runtime &rt, jsi::Object handle, jsi::String filename, jsi::Object source, double offset, double length, jsi::Array args);
+  startFile(jsi::Runtime &rt, jsi::Object handle, jsi::String filename, jsi::Array args);
+
+  void
+  startBytes(jsi::Runtime &rt, jsi::Object handle, jsi::String filename, jsi::Object source, double offset, double length, jsi::Array args);
 
   void
   startUTF8(jsi::Runtime &rt, jsi::Object handle, jsi::String filename, jsi::String source, jsi::Array args);

@@ -8,7 +8,9 @@ export interface Spec extends TurboModule {
     poll: (readable: boolean, writable: boolean) => void
   ): Object
 
-  start(
+  startFile(handle: Object, filename: string, args: Array<string>): void
+
+  startBytes(
     handle: Object,
     filename: string,
     source: Object,

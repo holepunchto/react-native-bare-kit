@@ -177,10 +177,12 @@ exports.Worklet = class BareKitWorklet {
 
     let err = null
     try {
-      if (typeof source === 'string') {
+      if (source === null) {
+        NativeBareKit.startFile(this._handle, filename, args)
+      } else if (typeof source === 'string') {
         NativeBareKit.startUTF8(this._handle, filename, source, args)
       } else {
-        NativeBareKit.start(
+        NativeBareKit.startBytes(
           this._handle,
           filename,
           source.buffer,
@@ -261,6 +263,7 @@ exports.Worklet = class BareKitWorklet {
 
   terminate() {
     this._ipc.destroy()
+
     NativeBareKit.terminate(this._handle)
 
     this._state |= constants.TERMINATED
