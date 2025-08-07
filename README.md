@@ -20,7 +20,8 @@ const { IPC } = BareKit
 IPC.on('data', (data) => console.log(data.toString()))
 IPC.write(Buffer.from('Hello from Bare!'))
 `
-
+// Ensure that the extension of the first arg matches the bundle's
+// You can use .bundle, .json, .js, .cjs, .mjs
 worklet.start('/app.js', source)
 
 const { IPC } = worklet
