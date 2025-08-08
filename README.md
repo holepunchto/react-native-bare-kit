@@ -39,7 +39,7 @@ import { Worklet } from 'react-native-bare-kit'
 import bundle from './my.bundle.js'
 
 const worklet = new Worklet()
-// Filename's extension *must* be .bundle
+// First arg (filename)'s extension *must* be .bundle
 worklet.start('/app.bundle', source)
 
 // [...]
