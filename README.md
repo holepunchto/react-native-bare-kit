@@ -29,6 +29,22 @@ IPC.on('data', (data) => console.log(b4a.toString(data)))
 IPC.write(b4a.from('Hello from React Native!'))
 ```
 
+Alternatively to load from a bundle:
+
+```js
+import { Worklet } from 'react-native-bare-kit'
+
+// Bundle output by `bare-pack`
+// Extension can be .bundle, .js, .cjs, .mjs
+import bundle from './my.bundle.js'
+
+const worklet = new Worklet()
+// First arg (filename)'s extension *must* be .bundle
+worklet.start('/app.bundle', source)
+
+// [...]
+```
+
 Refer to <https://github.com/holepunchto/bare-expo> for an example of using the library in an Expo application.
 
 ### Logging
