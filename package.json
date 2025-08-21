@@ -1,6 +1,6 @@
 {
   "name": "react-native-bare-kit",
-  "version": "0.8.8",
+  "version": "0.8.9",
   "description": "Bare Kit for React Native",
   "main": "./index.js",
   "types": "./index.d.ts",
