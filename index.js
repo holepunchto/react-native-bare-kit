@@ -125,6 +125,7 @@ exports.Worklet = class BareKitWorklet {
     this._state = 0
     this._source = null
     this._ipc = new BareKitIPC(this)
+    this._inactiveTimeout = null
 
     this._handle = NativeBareKit.init(memoryLimit, assets, this._ipc._poll)
   }
@@ -238,10 +239,27 @@ exports.Worklet = class BareKitWorklet {
     }
   }
 
+  // we have some bug (or RN has some bug) where we miss the suspension
+  // signal if we dont react on the inactive one. the inactive one also fires
+  // on a bunch of other stuff though, so we just "wiggle" the event here to buy time
+  _inactive() {
+    this.suspend()
+    this._inactiveTimeout = setTimeout(() => {
+      this._inactiveTimeout = null
+      if (AppState.currentState === 'inactive') this.resume()
+    }, 500)
+  }
+
   update(state = AppState.currentState) {
+    if (this._inactiveTimeout) {
+      clearTimeout(this._inactiveTimeout)
+      this._inactiveTimeout = null
+    }
     switch (state) {
       case 'active':
         return this.resume()
+      case 'inactive':
+        return this._inactive()
       case 'background':
         return this.suspend()
     }
