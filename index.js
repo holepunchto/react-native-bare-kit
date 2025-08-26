@@ -210,6 +210,8 @@ exports.Worklet = class BareKitWorklet {
   }
 
   suspend(linger = -1) {
+    console.log('Worklet suspending with linger', linger)
+
     if (typeof linger !== 'number') {
       throw new TypeError(
         'Linger time must be a number. Received type ' +
@@ -230,6 +232,8 @@ exports.Worklet = class BareKitWorklet {
   }
 
   resume() {
+    console.log('Worklet resuming')
+
     NativeBareKit.resume(this._handle)
   }
 
@@ -239,29 +243,36 @@ exports.Worklet = class BareKitWorklet {
     }
   }
 
-  // we have some bug (or RN has some bug) where we miss the suspension
-  // signal if we dont react on the inactive one. the inactive one also fires
-  // on a bunch of other stuff though, so we just "wiggle" the event here to buy time
-  _inactive() {
-    this.suspend()
-    this._inactiveTimeout = setTimeout(() => {
-      this._inactiveTimeout = null
-      if (AppState.currentState === 'inactive') this.resume()
-    }, 500)
-  }
-
   update(state = AppState.currentState) {
+    console.log('Worklet state changing to', state)
+
     if (this._inactiveTimeout) {
       clearTimeout(this._inactiveTimeout)
+
       this._inactiveTimeout = null
     }
+
     switch (state) {
       case 'active':
         return this.resume()
-      case 'inactive':
-        return this._inactive()
       case 'background':
         return this.suspend()
+      case 'inactive':
+        // We have some bug where we miss the suspension signal if we dont react
+        // on the inactive state. The inactive state also fires on a bunch of
+        // other stuff though, so we just "wiggle" the event here to buy time.
+        this.suspend()
+
+        this._inactiveTimeout = setTimeout(() => {
+          console.log(
+            'Worklet inactive timeout reached with state',
+            AppState.currentState
+          )
+
+          this._inactiveTimeout = null
+
+          if (AppState.currentState === 'inactive') this.resume()
+        }, 500)
     }
   }
 
