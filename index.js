@@ -20,7 +20,7 @@ class BareKitIPC extends Duplex {
   }
 
   _open(cb) {
-    if ((this._worklet._state & constants.STARTED) !== 0) cb(null)
+    if (this._worklet.started) cb(null)
     else this._pendingOpen = cb
   }
 
@@ -33,7 +33,7 @@ class BareKitIPC extends Duplex {
   }
 
   _poll(readable, writable) {
-    if ((this._worklet._state & constants.TERMINATED) !== 0) return
+    if (this._worklet.terminated) return
     if (readable) this._continueRead()
     if (writable) this._continueWrite()
   }
@@ -143,13 +143,8 @@ exports.Worklet = class BareKitWorklet {
   }
 
   start(filename, source, args = []) {
-    if ((this._state & constants.STARTED) !== 0) {
-      throw new Error('Worklet has already been started')
-    }
-
-    if ((this._state & constants.TERMINATED) !== 0) {
-      throw new Error('Worklet has been terminated')
-    }
+    if (this.started) throw new Error('Worklet has already been started')
+    if (this.terminated) throw new Error('Worklet has been terminated')
 
     if (typeof filename !== 'string') {
       throw new TypeError(
@@ -226,13 +221,8 @@ exports.Worklet = class BareKitWorklet {
   }
 
   suspend(linger = -1) {
-    if ((this._state & constants.STARTED) === 0) {
-      throw new Error('Worklet has not been started')
-    }
-
-    if ((this._state & constants.TERMINATED) !== 0) {
-      throw new Error('Worklet has been terminated')
-    }
+    if (!this.started) throw new Error('Worklet has not been started')
+    if (this.terminated) throw new Error('Worklet has been terminated')
 
     console.log('Worklet suspending with linger', linger)
 
@@ -256,13 +246,8 @@ exports.Worklet = class BareKitWorklet {
   }
 
   resume() {
-    if ((this._state & constants.STARTED) === 0) {
-      throw new Error('Worklet has not been started')
-    }
-
-    if ((this._state & constants.TERMINATED) !== 0) {
-      throw new Error('Worklet has been terminated')
-    }
+    if (!this.started) throw new Error('Worklet has not been started')
+    if (this.terminated) throw new Error('Worklet has been terminated')
 
     console.log('Worklet resuming')
 
@@ -315,13 +300,11 @@ exports.Worklet = class BareKitWorklet {
   }
 
   terminate() {
-    if ((this._state & constants.TERMINATED) !== 0) return
+    if (this.terminated) return
 
     this._ipc.destroy()
 
-    if ((this._state & constants.STARTED) !== 0) {
-      NativeBareKit.terminate(this._handle)
-    }
+    if (this.started) NativeBareKit.terminate(this._handle)
 
     this._state |= constants.TERMINATED
     this._source = null
