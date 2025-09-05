@@ -1,10 +1,12 @@
 const { AppState } = require('react-native')
 const { Duplex } = require('streamx')
+const EventEmitter = require('events')
 const { default: NativeBareKit } = require('./specs/NativeBareKit')
 
 const constants = {
   STARTED: 0x1,
-  TERMINATED: 0x2
+  TERMINATED: 0x2,
+  SUSPENDED: 0x4
 }
 
 class BareKitIPC extends Duplex {
@@ -96,10 +98,12 @@ class BareKitIPC extends Duplex {
   }
 }
 
-exports.Worklet = class BareKitWorklet {
+exports.Worklet = class BareKitWorklet extends EventEmitter {
   static _worklets = new Set()
 
   constructor(opts = {}) {
+    super()
+
     const { memoryLimit = 0, assets = null } = opts
 
     if (typeof memoryLimit !== 'number') {
@@ -140,6 +144,10 @@ exports.Worklet = class BareKitWorklet {
 
   get terminated() {
     return (this._state & constants.TERMINATED) !== 0
+  }
+
+  get suspended() {
+    return (this._state & constants.SUSPENDED) !== 0
   }
 
   start(filename, source, args = []) {
@@ -208,6 +216,8 @@ exports.Worklet = class BareKitWorklet {
 
       this._state |= constants.STARTED
 
+      this.emit('start')
+
       BareKitWorklet._worklets.add(this)
     } catch (e) {
       err = e
@@ -237,6 +247,10 @@ exports.Worklet = class BareKitWorklet {
     }
 
     NativeBareKit.suspend(this._handle, linger)
+
+    this._state |= constants.SUSPENDED
+
+    this.emit('suspend')
   }
 
   static suspend(linger) {
@@ -252,6 +266,10 @@ exports.Worklet = class BareKitWorklet {
     console.log('Worklet resuming')
 
     NativeBareKit.resume(this._handle)
+
+    this._state &= ~constants.SUSPENDED
+
+    this.emit('resume')
   }
 
   static resume() {
@@ -311,6 +329,8 @@ exports.Worklet = class BareKitWorklet {
     this._handle = null
 
     BareKitWorklet._worklets.delete(this)
+
+    this.emit('terminate')
   }
 
   toJSON() {
