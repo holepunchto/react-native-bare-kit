@@ -5,7 +5,8 @@ const { default: NativeBareKit } = require('./specs/NativeBareKit')
 
 const constants = {
   STARTED: 0x1,
-  TERMINATED: 0x2
+  TERMINATED: 0x2,
+  SUSPENDED: 0x4
 }
 
 class BareKitIPC extends Duplex {
@@ -145,6 +146,10 @@ exports.Worklet = class BareKitWorklet extends EventEmitter {
     return (this._state & constants.TERMINATED) !== 0
   }
 
+  get suspended() {
+    return (this._state & constants.SUSPENDED) !== 0
+  }
+
   start(filename, source, args = []) {
     if (this.started) throw new Error('Worklet has already been started')
     if (this.terminated) throw new Error('Worklet has been terminated')
@@ -243,6 +248,8 @@ exports.Worklet = class BareKitWorklet extends EventEmitter {
 
     NativeBareKit.suspend(this._handle, linger)
 
+    this._state |= constants.SUSPENDED
+
     this.emit('suspend')
   }
 
@@ -259,6 +266,8 @@ exports.Worklet = class BareKitWorklet extends EventEmitter {
     console.log('Worklet resuming')
 
     NativeBareKit.resume(this._handle)
+
+    this._state &= ~constants.SUSPENDED
 
     this.emit('resume')
   }
