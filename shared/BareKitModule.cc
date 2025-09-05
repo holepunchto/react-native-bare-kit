@@ -67,6 +67,9 @@ int
 bare_worklet_resume(bare_worklet_t *worklet);
 
 int
+bare_worklet_wakeup(bare_worklet_t *worklet, int deadline);
+
+int
 bare_worklet_terminate(bare_worklet_t *worklet);
 
 int
@@ -395,6 +398,16 @@ BareKitModule::resume(Runtime &rt, Object handle) {
   auto worklet = handle.getHostObject<BareKitWorklet>(rt);
 
   err = bare_worklet_resume(worklet->worklet);
+  assert(err == 0);
+}
+
+void
+BareKitModule::wakeup(Runtime &rt, Object handle, double deadline) {
+  int err;
+
+  auto worklet = handle.getHostObject<BareKitWorklet>(rt);
+
+  err = bare_worklet_wakeup(worklet->worklet, int(deadline));
   assert(err == 0);
 }
 

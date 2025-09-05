@@ -36,6 +36,8 @@ export interface Spec extends TurboModule {
 
   resume(handle: Object): void
 
+  wakeup(handle: Object, deadline: number): void
+
   terminate(handle: Object): void
 }
 

@@ -272,6 +272,31 @@ exports.Worklet = class BareKitWorklet extends EventEmitter {
     this.emit('resume')
   }
 
+  wakeup(deadline = 0) {
+    if (!this.started) throw new Error('Worklet has not been started')
+    if (this.terminated) throw new Error('Worklet has been terminated')
+
+    console.log('Worklet waking up with deadline', deadline)
+
+    if (typeof deadline !== 'number') {
+      throw new TypeError(
+        'Deadline time must be a number. Received type ' +
+          typeof deadline +
+          ' (' +
+          deadline +
+          ')'
+      )
+    }
+
+    NativeBareKit.wakeup(this._handle, deadline)
+  }
+
+  static wakeup(deadline) {
+    for (const worklet of this._worklets) {
+      worklet.deadline(deadline)
+    }
+  }
+
   static resume() {
     for (const worklet of this._worklets) {
       worklet.resume()

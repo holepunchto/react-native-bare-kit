@@ -39,6 +39,9 @@ public:
   resume(jsi::Runtime &rt, jsi::Object handle);
 
   void
+  wakeup(jsi::Runtime &rt, jsi::Object handle, double deadline);
+
+  void
   terminate(jsi::Runtime &rt, jsi::Object handle);
 };
 

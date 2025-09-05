@@ -12,10 +12,12 @@ export class Worklet {
 
   suspend(linger?: number): void
   resume(): void
+  wakeup(deadline?: number): void
   update(state?: AppStateStatus): void
   terminate(): void
 
   static suspend(linger?: number): void
   static resume(): void
+  static wakeup(deadline?: number): void
   static update(state?: AppStateStatus): void
 }
