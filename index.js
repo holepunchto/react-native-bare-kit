@@ -21,6 +21,16 @@ class BareKitIPC extends Duplex {
     this._pendingWrite = null
   }
 
+  get worklet() {
+    return this._worklet
+  }
+
+  toJSON() {
+    return {
+      worklet: this.worklet
+    }
+  }
+
   _open(cb) {
     if (this._worklet.started) cb(null)
     else this._pendingOpen = cb
@@ -92,13 +102,9 @@ class BareKitIPC extends Duplex {
     this._update()
     this._write(data, cb)
   }
-
-  toJSON() {
-    return {}
-  }
 }
 
-exports.Worklet = class BareKitWorklet extends EventEmitter {
+class BareKitWorklet extends EventEmitter {
   static _worklets = new Set()
 
   constructor(opts = {}) {
@@ -234,8 +240,6 @@ exports.Worklet = class BareKitWorklet extends EventEmitter {
     if (!this.started) throw new Error('Worklet has not been started')
     if (this.terminated) throw new Error('Worklet has been terminated')
 
-    console.log('Worklet suspending with linger', linger)
-
     if (typeof linger !== 'number') {
       throw new TypeError(
         'Linger time must be a number. Received type ' +
@@ -263,8 +267,6 @@ exports.Worklet = class BareKitWorklet extends EventEmitter {
     if (!this.started) throw new Error('Worklet has not been started')
     if (this.terminated) throw new Error('Worklet has been terminated')
 
-    console.log('Worklet resuming')
-
     NativeBareKit.resume(this._handle)
 
     this._state &= ~constants.SUSPENDED
@@ -275,8 +277,6 @@ exports.Worklet = class BareKitWorklet extends EventEmitter {
   wakeup(deadline = 0) {
     if (!this.started) throw new Error('Worklet has not been started')
     if (this.terminated) throw new Error('Worklet has been terminated')
-
-    console.log('Worklet waking up with deadline', deadline)
 
     if (typeof deadline !== 'number') {
       throw new TypeError(
@@ -289,6 +289,8 @@ exports.Worklet = class BareKitWorklet extends EventEmitter {
     }
 
     NativeBareKit.wakeup(this._handle, deadline)
+
+    this.emit('wakeup')
   }
 
   static wakeup(deadline) {
@@ -304,8 +306,6 @@ exports.Worklet = class BareKitWorklet extends EventEmitter {
   }
 
   update(state = AppState.currentState) {
-    console.log('Worklet state changing to', state)
-
     if (this._inactiveTimeout) {
       clearTimeout(this._inactiveTimeout)
 
@@ -324,11 +324,6 @@ exports.Worklet = class BareKitWorklet extends EventEmitter {
         this.suspend()
 
         this._inactiveTimeout = setTimeout(() => {
-          console.log(
-            'Worklet inactive timeout reached with state',
-            AppState.currentState
-          )
-
           this._inactiveTimeout = null
 
           if (AppState.currentState === 'inactive') this.resume()
@@ -359,10 +354,14 @@ exports.Worklet = class BareKitWorklet extends EventEmitter {
   }
 
   toJSON() {
-    return {}
+    return {
+      started: this.started,
+      terminated: this.terminated,
+      suspended: this.suspended
+    }
   }
 }
 
-const Worklet = exports.Worklet
+exports.Worklet = BareKitWorklet
 
-AppState.addEventListener('change', Worklet.update.bind(Worklet))
+AppState.addEventListener('change', BareKitWorklet.update.bind(BareKitWorklet))

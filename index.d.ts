@@ -1,10 +1,23 @@
-import type { Duplex } from 'streamx'
-import type { AppStateStatus } from 'react-native'
+import { Duplex } from 'streamx'
+import { AppStateStatus } from 'react-native'
+import EventEmitter, { EventMap } from 'bare-events'
 
-export class Worklet {
-  IPC: Duplex
+declare class IPC extends Duplex {
+  readonly worklet: Worklet
+}
 
+export interface WorkletEvents extends EventMap {
+  start: []
+  suspend: []
+  wakeup: []
+  resume: []
+  terminate: []
+}
+
+export class Worklet extends EventEmitter<WorkletEvents> {
   constructor(options?: { memoryLimit?: number; assets?: string })
+
+  readonly IPC: IPC
 
   start(filename: string, args?: string[]): void
   start(filename: string, source: Uint8Array, args?: string[]): void
