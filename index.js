@@ -1,6 +1,6 @@
 const { AppState } = require('react-native')
 const { Duplex } = require('streamx')
-const EventEmitter = require('events')
+const EventEmitter = require('bare-events')
 const { default: NativeBareKit } = require('./specs/NativeBareKit')
 
 const constants = {

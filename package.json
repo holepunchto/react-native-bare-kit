@@ -42,6 +42,7 @@
     }
   },
   "dependencies": {
+    "bare-events": "^2.6.1",
     "bare-link": "^1.0.1",
     "streamx": "^2.21.0"
   },
