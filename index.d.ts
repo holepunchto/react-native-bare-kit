@@ -14,8 +14,13 @@ export interface WorkletEvents extends EventMap {
   terminate: []
 }
 
+export interface WorkletOptions {
+  memoryLimit?: number
+  assets?: string
+}
+
 export class Worklet extends EventEmitter<WorkletEvents> {
-  constructor(options?: { memoryLimit?: number; assets?: string })
+  constructor(options?: WorkletOptions)
 
   readonly IPC: IPC
 
