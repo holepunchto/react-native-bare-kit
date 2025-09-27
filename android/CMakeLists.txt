@@ -12,6 +12,13 @@ set_target_properties(
 
 add_library(react-native-bare-kit STATIC)
 
+set_target_properties(
+  react-native-bare-kit
+  PROPERTIES
+  CXX_STANDARD 20
+  CXX_SCAN_FOR_MODULES OFF
+)
+
 target_sources(
   react-native-bare-kit
   PRIVATE
