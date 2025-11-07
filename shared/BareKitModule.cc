@@ -220,6 +220,12 @@ struct BareKitWorklet : HostObject {
   start() {
     int err;
 
+    err = bare_ipc_init(ipc, worklet);
+    assert(err == 0);
+
+    err = bare_ipc_poll_init(poll, ipc);
+    assert(err == 0);
+
     if (id) {
       std::unique_lock guard(lock);
 
@@ -232,12 +238,6 @@ struct BareKitWorklet : HostObject {
         assert(err == 0);
       }
     }
-
-    err = bare_ipc_init(ipc, worklet);
-    assert(err == 0);
-
-    err = bare_ipc_poll_init(poll, ipc);
-    assert(err == 0);
   }
 
   void
