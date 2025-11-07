@@ -21,6 +21,7 @@ export interface WorkletOptions {
 
 export class Worklet extends EventEmitter<WorkletEvents> {
   constructor(options?: WorkletOptions)
+  constructor(id: string, options?: WorkletOptions)
 
   readonly IPC: IPC
 

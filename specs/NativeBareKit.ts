@@ -3,9 +3,10 @@ import { TurboModuleRegistry } from 'react-native'
 
 export interface Spec extends TurboModule {
   init(
+    id: string | null,
     memoryLimit: number,
     assets: string | null,
-    poll: (readable: boolean, writable: boolean) => void
+    onpoll: (readable: boolean, writable: boolean) => void
   ): Object
 
   startFile(handle: Object, filename: string, args: Array<string>): void
