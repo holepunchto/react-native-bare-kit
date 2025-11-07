@@ -1,5 +1,8 @@
 #include <algorithm>
+#include <map>
+#include <mutex>
 #include <optional>
+#include <string>
 #include <vector>
 
 #include <assert.h>
@@ -172,8 +175,15 @@ struct BareKitWorklet : HostObject {
   bool started = false;
   bool terminated = false;
 
-  BareKitWorklet(Runtime &rt, int memoryLimit, std::optional<String> assets, Function &&on_poll, std::shared_ptr<CallInvoker> jsInvoker) : on_poll(rt, std::move(on_poll), jsInvoker) {
+  std::optional<std::string> id;
+
+  static std::mutex lock;
+  static std::map<std::string, BareKitWorklet *> worklets;
+
+  BareKitWorklet(Runtime &rt, std::optional<String> id, int memoryLimit, std::optional<String> assets, Function &&on_poll, std::shared_ptr<CallInvoker> jsInvoker) : on_poll(rt, std::move(on_poll), jsInvoker) {
     int err;
+
+    if (id) this->id = id->utf8(rt);
 
     err = bare_worklet_alloc(&worklet);
     assert(err == 0);
@@ -207,6 +217,30 @@ struct BareKitWorklet : HostObject {
   }
 
   void
+  start() {
+    int err;
+
+    err = bare_ipc_init(ipc, worklet);
+    assert(err == 0);
+
+    err = bare_ipc_poll_init(poll, ipc);
+    assert(err == 0);
+
+    if (id) {
+      std::unique_lock guard(lock);
+
+      auto previous = worklets[id.value()];
+
+      worklets[id.value()] = this;
+
+      if (previous) {
+        err = bare_worklet_terminate(previous->worklet);
+        assert(err == 0);
+      }
+    }
+  }
+
+  void
   start(Runtime &rt, Object handle, String filename, Array args) {
     int err;
 
@@ -231,11 +265,7 @@ struct BareKitWorklet : HostObject {
       free(const_cast<char *>(argv[i]));
     }
 
-    err = bare_ipc_init(ipc, worklet);
-    assert(err == 0);
-
-    err = bare_ipc_poll_init(poll, ipc);
-    assert(err == 0);
+    start();
   }
 
   void
@@ -265,11 +295,7 @@ struct BareKitWorklet : HostObject {
       free(const_cast<char *>(argv[i]));
     }
 
-    err = bare_ipc_init(ipc, worklet);
-    assert(err == 0);
-
-    err = bare_ipc_poll_init(poll, ipc);
-    assert(err == 0);
+    start();
   }
 
   void
@@ -299,11 +325,7 @@ struct BareKitWorklet : HostObject {
       free(const_cast<char *>(argv[i]));
     }
 
-    err = bare_ipc_init(ipc, worklet);
-    assert(err == 0);
-
-    err = bare_ipc_poll_init(poll, ipc);
-    assert(err == 0);
+    start();
   }
 
   std::optional<Object>
@@ -400,6 +422,14 @@ struct BareKitWorklet : HostObject {
 
     if (terminated) return;
 
+    if (id) {
+      std::unique_lock guard(lock);
+
+      auto current = worklets[id.value()];
+
+      if (current == this) worklets.erase(id.value());
+    }
+
     terminated = true;
 
     if (started) {
@@ -438,13 +468,17 @@ private:
   }
 };
 
+std::mutex BareKitWorklet::lock;
+
+std::map<std::string, BareKitWorklet *> BareKitWorklet::worklets;
+
 } // namespace
 
 BareKitModule::BareKitModule(std::shared_ptr<CallInvoker> jsInvoker) : NativeBareKitCxxSpec(std::move(jsInvoker)) {}
 
 Object
-BareKitModule::init(Runtime &rt, double memoryLimit, std::optional<String> assets, Function poll) {
-  auto worklet = std::make_shared<BareKitWorklet>(rt, int(memoryLimit), std::move(assets), std::move(poll), jsInvoker_);
+BareKitModule::init(Runtime &rt, std::optional<String> id, double memoryLimit, std::optional<String> assets, Function on_poll) {
+  auto worklet = std::make_shared<BareKitWorklet>(rt, std::move(id), int(memoryLimit), std::move(assets), std::move(on_poll), jsInvoker_);
 
   return Object::createFromHostObject(rt, std::move(worklet));
 }

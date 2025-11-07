@@ -107,8 +107,17 @@ class BareKitIPC extends Duplex {
 class BareKitWorklet extends EventEmitter {
   static _worklets = new Set()
 
-  constructor(opts = {}) {
-    super()
+  constructor(id = null, opts = {}) {
+    if (typeof id === 'object' && id !== null) {
+      opts = id
+      id = null
+    }
+
+    if (typeof id !== 'string' && id !== null) {
+      throw new TypeError(
+        'ID must be a string. Received type ' + typeof id + ' (' + id + ')'
+      )
+    }
 
     const { memoryLimit = 0, assets = null } = opts
 
@@ -132,12 +141,14 @@ class BareKitWorklet extends EventEmitter {
       )
     }
 
+    super()
+
     this._state = 0
     this._source = null
     this._ipc = new BareKitIPC(this)
     this._inactiveTimeout = null
 
-    this._handle = NativeBareKit.init(memoryLimit, assets, this._ipc._poll)
+    this._handle = NativeBareKit.init(id, memoryLimit, assets, this._ipc._poll)
   }
 
   get IPC() {
