@@ -38,14 +38,14 @@ jsi_to_buffer(Runtime &rt, const ArrayBuffer &value, size_t offset, size_t lengt
 }
 
 static inline uv_buf_t
-jsi_to_buffer(Runtime &rt, const String &value) {
+jsi_to_buffer_owned(Runtime &rt, const String &value) {
   auto utf8 = value.utf8(rt);
 
   return {strdup(utf8.c_str()), utf8.size()};
 }
 
 static inline char *
-jsi_to_string(Runtime &rt, const String &value) {
+jsi_to_string_owned(Runtime &rt, const String &value) {
   return strdup(value.utf8(rt).c_str());
 }
 
@@ -93,7 +93,7 @@ void
 bare_worklet_set_data(bare_worklet_t *worklet, void *data);
 
 int
-bare_worklet_start(bare_worklet_t *worklet, const char *filename, const uv_buf_t *source, bare_worklet_finalize_cb finalize, void *finalize_hint, int argc, const char *argv[]);
+bare_worklet_start(bare_worklet_t *worklet, const char *filename, const uv_buf_t *source, int argc, const char *argv[]);
 
 int
 bare_worklet_suspend(bare_worklet_t *worklet, int linger);
@@ -201,7 +201,7 @@ struct BareKitWorklet : HostObject {
     options.memory_limit = static_cast<size_t>(memoryLimit);
 
     if (assets) {
-      options.assets = jsi_to_string(rt, assets.value());
+      options.assets = jsi_to_string_owned(rt, assets.value());
     } else {
       options.assets = nullptr;
     }
@@ -248,15 +248,15 @@ struct BareKitWorklet : HostObject {
 
     started = true;
 
-    auto string = jsi_to_string(rt, filename);
+    auto string = jsi_to_string_owned(rt, filename);
 
     auto argv = std::vector<const char *>(args.size(rt));
 
     for (size_t i = 0, n = argv.size(); i < n; i++) {
-      argv[i] = jsi_to_string(rt, args.getValueAtIndex(rt, i).getString(rt));
+      argv[i] = jsi_to_string_owned(rt, args.getValueAtIndex(rt, i).getString(rt));
     }
 
-    err = bare_worklet_start(worklet, string, nullptr, nullptr, nullptr, argv.size(), argv.data());
+    err = bare_worklet_start(worklet, string, nullptr, argv.size(), argv.data());
     assert(err == 0);
 
     free(string);
@@ -276,17 +276,17 @@ struct BareKitWorklet : HostObject {
 
     started = true;
 
-    auto string = jsi_to_string(rt, filename);
+    auto string = jsi_to_string_owned(rt, filename);
 
     auto buffer = jsi_to_buffer(rt, source.getArrayBuffer(rt), offset, length);
 
     auto argv = std::vector<const char *>(args.size(rt));
 
     for (size_t i = 0, n = argv.size(); i < n; i++) {
-      argv[i] = jsi_to_string(rt, args.getValueAtIndex(rt, i).getString(rt));
+      argv[i] = jsi_to_string_owned(rt, args.getValueAtIndex(rt, i).getString(rt));
     }
 
-    err = bare_worklet_start(worklet, string, &buffer, nullptr, nullptr, argv.size(), argv.data());
+    err = bare_worklet_start(worklet, string, &buffer, argv.size(), argv.data());
     assert(err == 0);
 
     free(string);
@@ -306,18 +306,20 @@ struct BareKitWorklet : HostObject {
 
     started = true;
 
-    auto string = jsi_to_string(rt, filename);
+    auto string = jsi_to_string_owned(rt, filename);
 
-    auto buffer = jsi_to_buffer(rt, source);
+    auto buffer = jsi_to_buffer_owned(rt, source);
 
     auto argv = std::vector<const char *>(args.size(rt));
 
     for (size_t i = 0, n = argv.size(); i < n; i++) {
-      argv[i] = jsi_to_string(rt, args.getValueAtIndex(rt, i).getString(rt));
+      argv[i] = jsi_to_string_owned(rt, args.getValueAtIndex(rt, i).getString(rt));
     }
 
-    err = bare_worklet_start(worklet, string, &buffer, on_free_, nullptr, argv.size(), argv.data());
+    err = bare_worklet_start(worklet, string, &buffer, argv.size(), argv.data());
     assert(err == 0);
+
+    free(buffer.base);
 
     free(string);
 
@@ -460,11 +462,6 @@ private:
     worklet->on_poll.call([=](Runtime &rt, Function &function) {
       function.call(rt, (events & bare_ipc_readable) != 0, (events & bare_ipc_writable) != 0);
     });
-  }
-
-  static void
-  on_free_(bare_worklet_t *, const uv_buf_t *source, void *) {
-    free(source->base);
   }
 };
 

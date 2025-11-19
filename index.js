@@ -144,7 +144,6 @@ class BareKitWorklet extends EventEmitter {
     super()
 
     this._state = 0
-    this._source = null
     this._ipc = new BareKitIPC(this)
     this._inactiveTimeout = null
 
@@ -227,8 +226,6 @@ class BareKitWorklet extends EventEmitter {
           source.byteLength,
           args
         )
-
-        this._source = source // Keep a reference for lifetime management
       }
 
       this._state |= constants.STARTED
@@ -356,7 +353,6 @@ class BareKitWorklet extends EventEmitter {
     if (this.started) NativeBareKit.terminate(this._handle)
 
     this._state |= constants.TERMINATED
-    this._source = null
     this._handle = null
 
     BareKitWorklet._worklets.delete(this)
