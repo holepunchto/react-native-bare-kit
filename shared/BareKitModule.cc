@@ -170,6 +170,7 @@ struct BareKitWorklet : HostObject {
   bare_ipc_t *ipc = nullptr;
   bare_ipc_poll_t *poll = nullptr;
 
+  AsyncCallback<> on_terminate;
   AsyncCallback<bool, bool> on_poll;
 
   bool started = false;
@@ -180,7 +181,9 @@ struct BareKitWorklet : HostObject {
   static std::mutex lock;
   static std::map<std::string, BareKitWorklet *> worklets;
 
-  BareKitWorklet(Runtime &rt, std::optional<String> id, int memoryLimit, std::optional<String> assets, Function &&on_poll, std::shared_ptr<CallInvoker> jsInvoker) : on_poll(rt, std::move(on_poll), jsInvoker) {
+  BareKitWorklet(Runtime &rt, std::optional<String> id, int memoryLimit, std::optional<String> assets, Function &&on_terminate, Function &&on_poll, std::shared_ptr<CallInvoker> jsInvoker)
+      : on_terminate(rt, std::move(on_terminate), jsInvoker),
+        on_poll(rt, std::move(on_poll), jsInvoker) {
     int err;
 
     if (id) this->id = id->utf8(rt);
@@ -234,8 +237,9 @@ struct BareKitWorklet : HostObject {
       worklets[id.value()] = this;
 
       if (previous) {
-        err = bare_worklet_terminate(previous->worklet);
-        assert(err == 0);
+        previous->on_terminate.call([=](Runtime &rt, Function &function) {
+          function.call(rt);
+        });
       }
     }
   }
@@ -474,8 +478,8 @@ std::map<std::string, BareKitWorklet *> BareKitWorklet::worklets;
 BareKitModule::BareKitModule(std::shared_ptr<CallInvoker> jsInvoker) : NativeBareKitCxxSpec(std::move(jsInvoker)) {}
 
 Object
-BareKitModule::init(Runtime &rt, std::optional<String> id, double memoryLimit, std::optional<String> assets, Function on_poll) {
-  auto worklet = std::make_shared<BareKitWorklet>(rt, std::move(id), int(memoryLimit), std::move(assets), std::move(on_poll), jsInvoker_);
+BareKitModule::init(Runtime &rt, std::optional<String> id, double memoryLimit, std::optional<String> assets, Function on_terminate, Function on_poll) {
+  auto worklet = std::make_shared<BareKitWorklet>(rt, std::move(id), int(memoryLimit), std::move(assets), std::move(on_terminate), std::move(on_poll), jsInvoker_);
 
   return Object::createFromHostObject(rt, std::move(worklet));
 }

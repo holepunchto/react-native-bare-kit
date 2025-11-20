@@ -147,7 +147,15 @@ class BareKitWorklet extends EventEmitter {
     this._ipc = new BareKitIPC(this)
     this._inactiveTimeout = null
 
-    this._handle = NativeBareKit.init(id, memoryLimit, assets, this._ipc._poll)
+    const terminate = this.terminate.bind(this)
+
+    this._handle = NativeBareKit.init(
+      id,
+      memoryLimit,
+      assets,
+      terminate,
+      this._ipc._poll
+    )
   }
 
   get IPC() {

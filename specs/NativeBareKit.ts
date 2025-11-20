@@ -6,6 +6,7 @@ export interface Spec extends TurboModule {
     id: string | null,
     memoryLimit: number,
     assets: string | null,
+    onterminate: () => void,
     onpoll: (readable: boolean, writable: boolean) => void
   ): Object
 

@@ -12,7 +12,7 @@ public:
   BareKitModule(std::shared_ptr<CallInvoker> jsInvoker);
 
   jsi::Object
-  init(jsi::Runtime &rt, std::optional<jsi::String> id, double memoryLimit, std::optional<jsi::String> assets, jsi::Function on_poll);
+  init(jsi::Runtime &rt, std::optional<jsi::String> id, double memoryLimit, std::optional<jsi::String> assets, jsi::Function on_terminate, jsi::Function on_poll);
 
   void
   update(jsi::Runtime &rt, jsi::Object handle, bool readable, bool writable);
