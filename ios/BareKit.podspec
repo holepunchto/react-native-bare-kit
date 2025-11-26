@@ -26,7 +26,7 @@ Pod::Spec.new do |s|
 
   s.vendored_frameworks = "*.xcframework", "addons/*.xcframework"
 
-  s.prepare_command = "node link"
+  s.prepare_command = "node link.mjs"
 
   if lockfile
     sum = Digest::SHA256.hexdigest lockfile
