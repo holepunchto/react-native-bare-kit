@@ -21,12 +21,7 @@ export interface Spec extends TurboModule {
     args: Array<string>
   ): void
 
-  startUTF8(
-    handle: Object,
-    filename: string,
-    source: string,
-    args: Array<string>
-  ): void
+  startUTF8(handle: Object, filename: string, source: string, args: Array<string>): void
 
   update(handle: Object, readable: boolean, writable: boolean): void
 

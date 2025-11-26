@@ -114,9 +114,7 @@ class BareKitWorklet extends EventEmitter {
     }
 
     if (typeof id !== 'string' && id !== null) {
-      throw new TypeError(
-        'ID must be a string. Received type ' + typeof id + ' (' + id + ')'
-      )
+      throw new TypeError('ID must be a string. Received type ' + typeof id + ' (' + id + ')')
     }
 
     const { memoryLimit = 0, assets = null } = opts
@@ -133,11 +131,7 @@ class BareKitWorklet extends EventEmitter {
 
     if (typeof assets !== 'string' && assets !== null) {
       throw new TypeError(
-        'Asset path must be a string. Received type ' +
-          typeof assets +
-          ' (' +
-          assets +
-          ')'
+        'Asset path must be a string. Received type ' + typeof assets + ' (' + assets + ')'
       )
     }
 
@@ -149,13 +143,7 @@ class BareKitWorklet extends EventEmitter {
 
     const terminate = this.terminate.bind(this)
 
-    this._handle = NativeBareKit.init(
-      id,
-      memoryLimit,
-      assets,
-      terminate,
-      this._ipc._poll
-    )
+    this._handle = NativeBareKit.init(id, memoryLimit, assets, terminate, this._ipc._poll)
   }
 
   get IPC() {
@@ -180,11 +168,7 @@ class BareKitWorklet extends EventEmitter {
 
     if (typeof filename !== 'string') {
       throw new TypeError(
-        'Filename must be a string. Received type ' +
-          typeof filename +
-          ' (' +
-          filename +
-          ')'
+        'Filename must be a string. Received type ' + typeof filename + ' (' + filename + ')'
       )
     }
 
@@ -193,11 +177,7 @@ class BareKitWorklet extends EventEmitter {
       source = null
     }
 
-    if (
-      source !== null &&
-      typeof source !== 'string' &&
-      !ArrayBuffer.isView(source)
-    ) {
+    if (source !== null && typeof source !== 'string' && !ArrayBuffer.isView(source)) {
       throw new TypeError(
         'Source must be a string or TypedArray. Received type ' +
           typeof source +
@@ -210,11 +190,7 @@ class BareKitWorklet extends EventEmitter {
     for (const arg of args) {
       if (typeof arg !== 'string') {
         throw new TypeError(
-          'Argument must be a string. Received type ' +
-            typeof arg +
-            ' (' +
-            arg +
-            ')'
+          'Argument must be a string. Received type ' + typeof arg + ' (' + arg + ')'
         )
       }
     }
@@ -258,11 +234,7 @@ class BareKitWorklet extends EventEmitter {
 
     if (typeof linger !== 'number') {
       throw new TypeError(
-        'Linger time must be a number. Received type ' +
-          typeof linger +
-          ' (' +
-          linger +
-          ')'
+        'Linger time must be a number. Received type ' + typeof linger + ' (' + linger + ')'
       )
     }
 
@@ -296,11 +268,7 @@ class BareKitWorklet extends EventEmitter {
 
     if (typeof deadline !== 'number') {
       throw new TypeError(
-        'Deadline time must be a number. Received type ' +
-          typeof deadline +
-          ' (' +
-          deadline +
-          ')'
+        'Deadline time must be a number. Received type ' + typeof deadline + ' (' + deadline + ')'
       )
     }
 

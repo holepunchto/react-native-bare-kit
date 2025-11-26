@@ -43,7 +43,7 @@
   },
   "dependencies": {
     "bare-events": "^2.6.1",
-    "bare-link": "^1.0.1",
+    "bare-link": "^2.1.2",
     "streamx": "^2.21.0"
   },
   "peerDependencies": {
@@ -52,6 +52,6 @@
   },
   "devDependencies": {
     "prettier": "^3.3.3",
-    "prettier-config-standard": "^7.0.0"
+    "prettier-config-holepunch": "^2.0.0"
   }
 }

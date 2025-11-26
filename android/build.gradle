@@ -48,7 +48,7 @@ android {
 }
 
 task link(type: Exec) {
-  commandLine "node", "link"
+  commandLine "node", "link.mjs"
 }
 
 preBuild.dependsOn link
