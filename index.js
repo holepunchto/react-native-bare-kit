@@ -139,7 +139,6 @@ class BareKitWorklet extends EventEmitter {
 
     this._state = 0
     this._ipc = new BareKitIPC(this)
-    this._inactiveTimeout = null
 
     const terminate = this.terminate.bind(this)
 
@@ -290,28 +289,11 @@ class BareKitWorklet extends EventEmitter {
   }
 
   update(state = AppState.currentState) {
-    if (this._inactiveTimeout) {
-      clearTimeout(this._inactiveTimeout)
-
-      this._inactiveTimeout = null
-    }
-
     switch (state) {
       case 'active':
         return this.resume()
       case 'background':
         return this.suspend()
-      case 'inactive':
-        // We have some bug where we miss the suspension signal if we dont react
-        // on the inactive state. The inactive state also fires on a bunch of
-        // other stuff though, so we just "wiggle" the event here to buy time.
-        this.suspend()
-
-        this._inactiveTimeout = setTimeout(() => {
-          this._inactiveTimeout = null
-
-          if (AppState.currentState === 'inactive') this.resume()
-        }, 500)
     }
   }
 
