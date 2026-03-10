@@ -5,7 +5,7 @@ import link from 'bare-link'
 const __filename = fileURLToPath(import.meta.url)
 
 for await (const resource of link(path.join(__filename, '..', '..', '..', '..'), {
-  target: ['android-arm64', 'android-arm', 'android-ia32', 'android-x64'],
+  hosts: ['android-arm64', 'android-arm', 'android-ia32', 'android-x64'],
   out: path.join(__filename, '..', 'src', 'main', 'addons')
 })) {
   console.log('Wrote', resource)

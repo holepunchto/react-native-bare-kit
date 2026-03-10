@@ -43,7 +43,7 @@
   },
   "dependencies": {
     "bare-events": "^2.6.1",
-    "bare-link": "^2.1.8",
+    "bare-link": "^3.0.1",
     "streamx": "^2.21.0"
   },
   "peerDependencies": {
