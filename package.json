@@ -15,7 +15,8 @@
     "specs"
   ],
   "scripts": {
-    "test": "prettier . --check"
+    "format": "prettier --write . && lunte --fix",
+    "lint": "prettier --check . && lunte"
   },
   "repository": {
     "type": "git",
@@ -52,6 +53,7 @@
   },
   "devDependencies": {
     "cmake-fetch": "^1.4.9",
+    "lunte": "^1.6.0",
     "prettier": "^3.3.3",
     "prettier-config-holepunch": "^2.0.0"
   }
