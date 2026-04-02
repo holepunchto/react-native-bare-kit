@@ -1,0 +1,21 @@
+name: Publish
+on:
+  push:
+    tags:
+      - v*
+permissions:
+  id-token: write
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: npm
+    needs: prebuild
+    name: Publish
+    steps:
+      - uses: holepunchto/actions/node-base@v1
+      - run: npm instal --global bare-make
+      - run: bare-make generate
+      - run: bare-make install --prefix .
+      - uses: holepunchto/actions/publish@v1
