@@ -7,11 +7,10 @@ declare class IPC extends Duplex {
 }
 
 export interface WorkletEvents extends EventMap {
-  start: []
-  suspend: []
-  wakeup: []
+  suspend: [linger: number]
+  wakeup: [deadline: number]
+  idle: []
   resume: []
-  terminate: []
 }
 
 export interface WorkletOptions {

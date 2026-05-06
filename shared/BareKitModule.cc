@@ -54,11 +54,16 @@ jsi_to_string_owned(Runtime &rt, const String &value) {
 } // namespace facebook::react
 
 extern "C" {
+typedef struct bare_s bare_t;
 typedef struct bare_worklet_s bare_worklet_t;
 typedef struct bare_worklet_options_s bare_worklet_options_t;
 typedef struct bare_ipc_s bare_ipc_t;
 typedef struct bare_ipc_poll_s bare_ipc_poll_t;
 
+typedef void (*bare_suspend_cb)(bare_t *, int linger, void *data);
+typedef void (*bare_wakeup_cb)(bare_t *, int deadline, void *data);
+typedef void (*bare_idle_cb)(bare_t *, void *data);
+typedef void (*bare_resume_cb)(bare_t *, void *data);
 typedef void (*bare_worklet_finalize_cb)(bare_worklet_t *, const uv_buf_t *source, void *finalize_hint);
 typedef void (*bare_ipc_poll_cb)(bare_ipc_poll_t *, int events);
 
@@ -91,6 +96,18 @@ bare_worklet_get_data(bare_worklet_t *worklet);
 
 void
 bare_worklet_set_data(bare_worklet_t *worklet, void *data);
+
+int
+bare_worklet_on_suspend(bare_worklet_t *worklet, bare_suspend_cb cb, void *data);
+
+int
+bare_worklet_on_wakeup(bare_worklet_t *worklet, bare_wakeup_cb cb, void *data);
+
+int
+bare_worklet_on_idle(bare_worklet_t *worklet, bare_idle_cb cb, void *data);
+
+int
+bare_worklet_on_resume(bare_worklet_t *worklet, bare_resume_cb cb, void *data);
 
 int
 bare_worklet_start(bare_worklet_t *worklet, const char *filename, const uv_buf_t *source, int argc, const char *argv[]);
@@ -172,6 +189,10 @@ struct BareKitWorklet : HostObject {
 
   AsyncCallback<> on_terminate;
   AsyncCallback<bool, bool> on_poll;
+  AsyncCallback<int> on_suspend;
+  AsyncCallback<int> on_wakeup;
+  AsyncCallback<> on_idle;
+  AsyncCallback<> on_resume;
 
   bool started = false;
   bool terminated = false;
@@ -181,9 +202,25 @@ struct BareKitWorklet : HostObject {
   static std::mutex lock;
   static std::map<std::string, BareKitWorklet *> worklets;
 
-  BareKitWorklet(Runtime &rt, std::optional<String> id, int memoryLimit, std::optional<String> assets, Function &&on_terminate, Function &&on_poll, std::shared_ptr<CallInvoker> jsInvoker)
+  BareKitWorklet(
+  Runtime &rt,
+  std::optional<String> id,
+  int memoryLimit,
+  std::optional<String> assets,
+  Function &&on_terminate,
+  Function &&on_poll,
+  Function &&on_suspend,
+  Function &&on_wakeup,
+  Function &&on_idle,
+  Function &&on_resume,
+  std::shared_ptr<CallInvoker> jsInvoker
+  )
       : on_terminate(rt, std::move(on_terminate), jsInvoker),
-        on_poll(rt, std::move(on_poll), jsInvoker) {
+        on_poll(rt, std::move(on_poll), jsInvoker),
+        on_suspend(rt, std::move(on_suspend), jsInvoker),
+        on_wakeup(rt, std::move(on_wakeup), jsInvoker),
+        on_idle(rt, std::move(on_idle), jsInvoker),
+        on_resume(rt, std::move(on_resume), jsInvoker) {
     int err;
 
     if (id) this->id = id->utf8(rt);
@@ -210,6 +247,18 @@ struct BareKitWorklet : HostObject {
     }
 
     err = bare_worklet_init(worklet, &options);
+    assert(err == 0);
+
+    err = bare_worklet_on_suspend(worklet, on_suspend_, this);
+    assert(err == 0);
+
+    err = bare_worklet_on_wakeup(worklet, on_wakeup_, this);
+    assert(err == 0);
+
+    err = bare_worklet_on_idle(worklet, on_idle_, this);
+    assert(err == 0);
+
+    err = bare_worklet_on_resume(worklet, on_resume_, this);
     assert(err == 0);
 
     free(const_cast<char *>(options.assets));
@@ -465,6 +514,42 @@ private:
 
     worklet->on_poll.call([=](Runtime &rt, Function &function) {
       function.call(rt, (events & bare_ipc_readable) != 0, (events & bare_ipc_writable) != 0);
+    });
+  }
+
+  static void
+  on_suspend_(bare_t *bare, int linger, void *data) {
+    auto worklet = static_cast<BareKitWorklet *>(data);
+
+    worklet->on_suspend.call([=](Runtime &rt, Function &function) {
+      function.call(rt, linger);
+    });
+  }
+
+  static void
+  on_wakeup_(bare_t *bare, int deadline, void *data) {
+    auto worklet = static_cast<BareKitWorklet *>(data);
+
+    worklet->on_wakeup.call([=](Runtime &rt, Function &function) {
+      function.call(rt, linger);
+    });
+  }
+
+  static void
+  on_idle_(bare_t *bare, void *data) {
+    auto worklet = static_cast<BareKitWorklet *>(data);
+
+    worklet->on_idle.call([=](Runtime &rt, Function &function) {
+      function.call(rt);
+    });
+  }
+
+  static void
+  on_resume_(bare_t *bare, void *data) {
+    auto worklet = static_cast<BareKitWorklet *>(data);
+
+    worklet->on_resume.call([=](Runtime &rt, Function &function) {
+      function.call(rt);
     });
   }
 };
