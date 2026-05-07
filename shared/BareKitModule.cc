@@ -531,7 +531,7 @@ private:
     auto worklet = static_cast<BareKitWorklet *>(data);
 
     worklet->on_wakeup.call([=](Runtime &rt, Function &function) {
-      function.call(rt, linger);
+      function.call(rt, deadline);
     });
   }
 
