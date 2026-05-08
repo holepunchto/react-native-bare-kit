@@ -203,17 +203,17 @@ struct BareKitWorklet : HostObject {
   static std::map<std::string, BareKitWorklet *> worklets;
 
   BareKitWorklet(
-  Runtime &rt,
-  std::optional<String> id,
-  int memoryLimit,
-  std::optional<String> assets,
-  Function &&on_terminate,
-  Function &&on_poll,
-  Function &&on_suspend,
-  Function &&on_wakeup,
-  Function &&on_idle,
-  Function &&on_resume,
-  std::shared_ptr<CallInvoker> jsInvoker
+    Runtime &rt,
+    std::optional<String> id,
+    int memoryLimit,
+    std::optional<String> assets,
+    Function &&on_terminate,
+    Function &&on_poll,
+    Function &&on_suspend,
+    Function &&on_wakeup,
+    Function &&on_idle,
+    Function &&on_resume,
+    std::shared_ptr<CallInvoker> jsInvoker
   )
       : on_terminate(rt, std::move(on_terminate), jsInvoker),
         on_poll(rt, std::move(on_poll), jsInvoker),
@@ -564,29 +564,29 @@ BareKitModule::BareKitModule(std::shared_ptr<CallInvoker> jsInvoker) : NativeBar
 
 Object
 BareKitModule::init(
-Runtime &rt,
-std::optional<String> id,
-double memoryLimit,
-std::optional<String> assets,
-Function on_terminate,
-Function on_poll,
-Function on_suspend,
-Function on_wakeup,
-Function on_idle,
-Function on_resume
+  Runtime &rt,
+  std::optional<String> id,
+  double memoryLimit,
+  std::optional<String> assets,
+  Function on_terminate,
+  Function on_poll,
+  Function on_suspend,
+  Function on_wakeup,
+  Function on_idle,
+  Function on_resume
 ) {
   auto worklet = std::make_shared<BareKitWorklet>(
-  rt,
-  std::move(id),
-  int(memoryLimit),
-  std::move(assets),
-  std::move(on_terminate),
-  std::move(on_poll),
-  std::move(on_suspend),
-  std::move(on_wakeup),
-  std::move(on_idle),
-  std::move(on_resume),
-  jsInvoker_
+    rt,
+    std::move(id),
+    int(memoryLimit),
+    std::move(assets),
+    std::move(on_terminate),
+    std::move(on_poll),
+    std::move(on_suspend),
+    std::move(on_wakeup),
+    std::move(on_idle),
+    std::move(on_resume),
+    jsInvoker_
   );
 
   return Object::createFromHostObject(rt, std::move(worklet));

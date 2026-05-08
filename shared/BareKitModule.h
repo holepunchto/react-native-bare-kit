@@ -13,16 +13,16 @@ public:
 
   jsi::Object
   init(
-  jsi::Runtime &rt,
-  std::optional<jsi::String> id,
-  double memoryLimit,
-  std::optional<jsi::String> assets,
-  jsi::Function on_terminate,
-  jsi::Function on_poll,
-  jsi::Function on_suspend,
-  jsi::Function on_wakeup,
-  jsi::Function on_idle,
-  jsi::Function on_resume
+    jsi::Runtime &rt,
+    std::optional<jsi::String> id,
+    double memoryLimit,
+    std::optional<jsi::String> assets,
+    jsi::Function on_terminate,
+    jsi::Function on_poll,
+    jsi::Function on_suspend,
+    jsi::Function on_wakeup,
+    jsi::Function on_idle,
+    jsi::Function on_resume
   );
 
   void
