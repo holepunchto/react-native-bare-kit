@@ -573,7 +573,7 @@ Function on_poll,
 Function on_suspend,
 Function on_wakeup,
 Function on_idle,
-Function on_resume,
+Function on_resume
 ) {
   auto worklet = std::make_shared<BareKitWorklet>(
   rt,
