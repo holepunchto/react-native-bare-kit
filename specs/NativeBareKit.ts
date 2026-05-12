@@ -7,7 +7,11 @@ export interface Spec extends TurboModule {
     memoryLimit: number,
     assets: string | null,
     onterminate: () => void,
-    onpoll: (readable: boolean, writable: boolean) => void
+    onpoll: (readable: boolean, writable: boolean) => void,
+    onsuspend: (linger: number) => void,
+    onwakeup: (deadline: number) => void,
+    onidle: () => void,
+    onresume: () => void
   ): Object
 
   startFile(handle: Object, filename: string, args: Array<string>): void

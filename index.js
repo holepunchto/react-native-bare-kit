@@ -142,7 +142,17 @@ class BareKitWorklet extends EventEmitter {
 
     const terminate = this.terminate.bind(this)
 
-    this._handle = NativeBareKit.init(id, memoryLimit, assets, terminate, this._ipc._poll)
+    this._handle = NativeBareKit.init(
+      id,
+      memoryLimit,
+      assets,
+      terminate,
+      this._ipc._poll,
+      this._onsuspend.bind(this),
+      this._onwakeup.bind(this),
+      this._onidle.bind(this),
+      this._onresume.bind(this)
+    )
   }
 
   get IPC() {
@@ -213,8 +223,6 @@ class BareKitWorklet extends EventEmitter {
 
       this._state |= constants.STARTED
 
-      this.emit('start')
-
       BareKitWorklet._worklets.add(this)
     } catch (e) {
       err = e
@@ -240,8 +248,6 @@ class BareKitWorklet extends EventEmitter {
     NativeBareKit.suspend(this._handle, linger)
 
     this._state |= constants.SUSPENDED
-
-    this.emit('suspend')
   }
 
   static suspend(linger) {
@@ -257,8 +263,6 @@ class BareKitWorklet extends EventEmitter {
     NativeBareKit.resume(this._handle)
 
     this._state &= ~constants.SUSPENDED
-
-    this.emit('resume')
   }
 
   wakeup(deadline = 0) {
@@ -272,8 +276,6 @@ class BareKitWorklet extends EventEmitter {
     }
 
     NativeBareKit.wakeup(this._handle, deadline)
-
-    this.emit('wakeup')
   }
 
   static wakeup(deadline) {
@@ -314,8 +316,6 @@ class BareKitWorklet extends EventEmitter {
     this._handle = null
 
     BareKitWorklet._worklets.delete(this)
-
-    this.emit('terminate')
   }
 
   toJSON() {
@@ -324,6 +324,22 @@ class BareKitWorklet extends EventEmitter {
       terminated: this.terminated,
       suspended: this.suspended
     }
+  }
+
+  _onsuspend(linger) {
+    this.emit('suspend', linger)
+  }
+
+  _onwakeup(deadline) {
+    this.emit('wakeup', deadline)
+  }
+
+  _onidle() {
+    this.emit('idle')
+  }
+
+  _onresume() {
+    this.emit('resume')
   }
 }
 

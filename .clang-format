@@ -5,6 +5,6 @@ AllowShortIfStatementsOnASingleLine: AllIfsAndElse
 AlwaysBreakAfterReturnType: All
 BinPackArguments: false
 BinPackParameters: false
-ContinuationIndentWidth: 0
+ContinuationIndentWidth: 2
 ColumnLimit: 0
 SpaceAfterCStyleCast: true
