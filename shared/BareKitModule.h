@@ -5,11 +5,19 @@
 
 #include "BareKitSpecJSI.h"
 
+extern "C" {
+typedef struct bare_worklet_s bare_worklet_t;
+}
+
 namespace facebook::react {
+
+typedef int (*BareKitWorkletConfigure)(bare_worklet_t *worklet, void *data);
 
 class BareKitModule : public NativeBareKitCxxSpec<BareKitModule> {
 public:
   BareKitModule(std::shared_ptr<CallInvoker> jsInvoker);
+
+  BareKitModule(std::shared_ptr<CallInvoker> jsInvoker, BareKitWorkletConfigure configure, void *configureData);
 
   jsi::Object
   init(
@@ -54,6 +62,10 @@ public:
 
   void
   terminate(jsi::Runtime &rt, jsi::Object handle);
+
+private:
+  BareKitWorkletConfigure configure_ = nullptr;
+  void *configureData_ = nullptr;
 };
 
 } // namespace facebook::react

@@ -213,7 +213,9 @@ struct BareKitWorklet : HostObject {
     Function &&on_wakeup,
     Function &&on_idle,
     Function &&on_resume,
-    std::shared_ptr<CallInvoker> jsInvoker
+    std::shared_ptr<CallInvoker> jsInvoker,
+    BareKitWorkletConfigure configure,
+    void *configureData
   )
       : on_terminate(rt, std::move(on_terminate), jsInvoker),
         on_poll(rt, std::move(on_poll), jsInvoker),
@@ -248,6 +250,11 @@ struct BareKitWorklet : HostObject {
 
     err = bare_worklet_init(worklet, &options);
     assert(err == 0);
+
+    if (configure) {
+      err = configure(worklet, configureData);
+      assert(err == 0);
+    }
 
     err = bare_worklet_on_suspend(worklet, on_suspend_, this);
     assert(err == 0);
@@ -560,7 +567,8 @@ std::map<std::string, BareKitWorklet *> BareKitWorklet::worklets;
 
 } // namespace
 
-BareKitModule::BareKitModule(std::shared_ptr<CallInvoker> jsInvoker) : NativeBareKitCxxSpec(std::move(jsInvoker)) {}
+BareKitModule::BareKitModule(std::shared_ptr<CallInvoker> jsInvoker, BareKitWorkletConfigure configure, void *configureData)
+    : NativeBareKitCxxSpec(std::move(jsInvoker)), configure_(configure), configureData_(configureData) {}
 
 Object
 BareKitModule::init(
@@ -586,7 +594,9 @@ BareKitModule::init(
     std::move(on_wakeup),
     std::move(on_idle),
     std::move(on_resume),
-    jsInvoker_
+    jsInvoker_,
+    configure_,
+    configureData_
   );
 
   return Object::createFromHostObject(rt, std::move(worklet));

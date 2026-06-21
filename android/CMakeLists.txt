@@ -22,6 +22,7 @@ set_target_properties(
 target_sources(
   react-native-bare-kit
   PRIVATE
+    BareKitModuleAndroid.cc
     ../shared/BareKitModule.cc
     ../shared/BareKitModule.h
 )
