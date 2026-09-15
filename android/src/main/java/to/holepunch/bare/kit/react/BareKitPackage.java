@@ -11,6 +11,11 @@ import java.util.Map;
 public class BareKitPackage extends BaseReactPackage {
   public static String NAME = "BareKit";
 
+  static {
+    // The library must be loaded from Java so JNI_OnLoad runs and captures the JVM.
+    System.loadLibrary("bare-kit");
+  }
+
   @Override
   public NativeModule
   getModule(String name, ReactApplicationContext context) {
