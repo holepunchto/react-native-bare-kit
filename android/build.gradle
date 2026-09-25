@@ -60,7 +60,7 @@ repositories {
 
 dependencies {
   api fileTree(dir: "libs", include: ["bare-kit/classes.jar"])
-  api fileTree(dir: "src/main/addons", include: ["*.classes.jar"])
+  api fileTree(dir: "src/main/addons", include: ["*.jar"])
 
   implementation "com.facebook.react:react-native:+"
 }
