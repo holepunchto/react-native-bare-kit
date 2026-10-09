@@ -47,12 +47,6 @@ android {
   }
 }
 
-task link(type: Exec) {
-  commandLine "node", "link.mjs"
-}
-
-preBuild.dependsOn link
-
 repositories {
   google()
   mavenCentral()
