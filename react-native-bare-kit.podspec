@@ -2,16 +2,6 @@ require "json"
 
 package = JSON.parse(File.read(File.join(__dir__, "package.json")))
 
-begin
-  lockfile = File.read(File.join(__dir__, "../../package-lock.json"))
-rescue
-  begin
-    lockfile = File.read(File.join(__dir__, "../../yarn.lock"))
-  rescue
-    lockfile = nil
-  end
-end
-
 Pod::Spec.new do |s|
   s.name = package["name"]
   s.version = package["version"]
@@ -32,13 +22,5 @@ Pod::Spec.new do |s|
 
   s.module_name = "react_native_bare_kit"
 
-  s.prepare_command = "node ios/link.mjs"
-
   install_modules_dependencies(s)
-
-  if lockfile
-    sum = Digest::SHA256.hexdigest lockfile
-
-    s.version = "#{s.version}+#{sum[0, 6]}"
-  end
 end
