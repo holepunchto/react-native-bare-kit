@@ -5,7 +5,6 @@ export interface Spec extends TurboModule {
   init(
     id: string | null,
     memoryLimit: number,
-    assets: string | null,
     onterminate: () => void,
     onpoll: (readable: boolean, writable: boolean) => void,
     onsuspend: (linger: number) => void,
@@ -32,6 +31,8 @@ export interface Spec extends TurboModule {
   read(handle: Object): Object | null
 
   write(handle: Object, data: Object, offset: number, length: number): number
+
+  end(handle: Object): void
 
   suspend(handle: Object, linger: number): void
 
