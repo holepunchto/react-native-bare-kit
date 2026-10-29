@@ -15,7 +15,6 @@ export interface WorkletEvents extends EventMap {
 
 export interface WorkletOptions {
   memoryLimit?: number
-  assets?: string
 }
 
 export class Worklet extends EventEmitter<WorkletEvents> {

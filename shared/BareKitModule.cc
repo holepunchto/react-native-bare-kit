@@ -6,164 +6,93 @@
 #include <vector>
 
 #include <assert.h>
-#include <stdlib.h>
-#include <string.h>
+#include <dlfcn.h>
 
 #include <react/bridging/Bridging.h>
 
+#if defined(__ANDROID__)
+#include <fbjni/fbjni.h>
+#endif
+
 #include "BareKitModule.h"
+#include "bare-kit.h"
 
 using namespace facebook::jsi;
 using namespace facebook::react;
 
-extern "C" {
-typedef struct uv_buf_t {
-  char *base;
-  size_t len;
-} uv_buf_t;
-}
-
 namespace facebook::react {
 
 namespace {
 
-static inline uv_buf_t
-jsi_to_buffer(Runtime &rt, const ArrayBuffer &value) {
-  return {reinterpret_cast<char *>(value.data(rt)), value.size(rt)};
+// Bare Kit is brought along by the application, through bare-kit-swift or
+// bare-kit-kotlin, so that the library is shared with any other code of the
+// application that runs worklets. It is therefore resolved at runtime rather
+// than linked.
+#define BARE_KIT_FUNCTIONS(V) \
+  V(bare_worklet_create) \
+  V(bare_worklet_destroy) \
+  V(bare_worklet_on_suspend) \
+  V(bare_worklet_on_wakeup) \
+  V(bare_worklet_on_idle) \
+  V(bare_worklet_on_resume) \
+  V(bare_worklet_on_exit) \
+  V(bare_worklet_start) \
+  V(bare_worklet_suspend) \
+  V(bare_worklet_resume) \
+  V(bare_worklet_wakeup) \
+  V(bare_worklet_terminate) \
+  V(bare_ipc_create) \
+  V(bare_ipc_end) \
+  V(bare_ipc_destroy) \
+  V(bare_ipc_read) \
+  V(bare_ipc_write) \
+  V(bare_ipc_poll_create) \
+  V(bare_ipc_poll_destroy) \
+  V(bare_ipc_poll_get_data) \
+  V(bare_ipc_poll_set_data) \
+  V(bare_ipc_poll_start) \
+  V(bare_ipc_poll_stop)
+
+static struct {
+#define V(name) decltype(&::name) name;
+  BARE_KIT_FUNCTIONS(V)
+#undef V
+} kit;
+
+#if defined(__APPLE__)
+static const char *bare_kit_library = "@rpath/BareKit.framework/BareKit";
+#else
+static const char *bare_kit_library = "libbare-kit.so";
+#endif
+
+static void
+load(Runtime &rt) {
+  static std::string error;
+  static std::once_flag loaded;
+
+  std::call_once(loaded, [] {
+    void *handle = dlopen(bare_kit_library, RTLD_NOW | RTLD_LOCAL);
+
+    if (handle == nullptr) {
+      error = dlerror();
+
+      return;
+    }
+
+#define V(name) \
+  kit.name = reinterpret_cast<decltype(kit.name)>(dlsym(handle, #name)); \
+  if (kit.name == nullptr) { \
+    error = "Missing symbol '" #name "'"; \
+    return; \
+  }
+    BARE_KIT_FUNCTIONS(V)
+#undef V
+  });
+
+  if (!error.empty()) {
+    throw JSError(rt, "Bare Kit is not available, so make sure the application includes bare-kit-swift or bare-kit-kotlin (" + error + ")");
+  }
 }
-
-static inline uv_buf_t
-jsi_to_buffer(Runtime &rt, const ArrayBuffer &value, size_t offset, size_t length) {
-  return {reinterpret_cast<char *>(value.data(rt)) + offset, length};
-}
-
-static inline uv_buf_t
-jsi_to_buffer_owned(Runtime &rt, const String &value) {
-  auto utf8 = value.utf8(rt);
-
-  return {strdup(utf8.c_str()), utf8.size()};
-}
-
-static inline char *
-jsi_to_string_owned(Runtime &rt, const String &value) {
-  return strdup(value.utf8(rt).c_str());
-}
-
-} // namespace
-
-} // namespace facebook::react
-
-extern "C" {
-typedef struct bare_s bare_t;
-typedef struct bare_worklet_s bare_worklet_t;
-typedef struct bare_worklet_options_s bare_worklet_options_t;
-typedef struct bare_ipc_s bare_ipc_t;
-typedef struct bare_ipc_poll_s bare_ipc_poll_t;
-
-typedef void (*bare_suspend_cb)(bare_t *, int linger, void *data);
-typedef void (*bare_wakeup_cb)(bare_t *, int deadline, void *data);
-typedef void (*bare_idle_cb)(bare_t *, void *data);
-typedef void (*bare_resume_cb)(bare_t *, void *data);
-typedef void (*bare_worklet_finalize_cb)(bare_worklet_t *, const uv_buf_t *source, void *finalize_hint);
-typedef void (*bare_ipc_poll_cb)(bare_ipc_poll_t *, int events);
-
-struct bare_worklet_options_s {
-  size_t memory_limit;
-  const char *assets;
-};
-
-enum {
-  bare_ipc_readable = 0x1,
-  bare_ipc_writable = 0x2,
-};
-
-enum {
-  bare_ipc_would_block = -1,
-  bare_ipc_error = -2,
-};
-
-int
-bare_worklet_alloc(bare_worklet_t **result);
-
-int
-bare_worklet_init(bare_worklet_t *worklet, const bare_worklet_options_t *options);
-
-void
-bare_worklet_destroy(bare_worklet_t *worklet);
-
-void *
-bare_worklet_get_data(bare_worklet_t *worklet);
-
-void
-bare_worklet_set_data(bare_worklet_t *worklet, void *data);
-
-int
-bare_worklet_on_suspend(bare_worklet_t *worklet, bare_suspend_cb cb, void *data);
-
-int
-bare_worklet_on_wakeup(bare_worklet_t *worklet, bare_wakeup_cb cb, void *data);
-
-int
-bare_worklet_on_idle(bare_worklet_t *worklet, bare_idle_cb cb, void *data);
-
-int
-bare_worklet_on_resume(bare_worklet_t *worklet, bare_resume_cb cb, void *data);
-
-int
-bare_worklet_start(bare_worklet_t *worklet, const char *filename, const uv_buf_t *source, int argc, const char *argv[]);
-
-int
-bare_worklet_suspend(bare_worklet_t *worklet, int linger);
-
-int
-bare_worklet_resume(bare_worklet_t *worklet);
-
-int
-bare_worklet_wakeup(bare_worklet_t *worklet, int deadline);
-
-int
-bare_worklet_terminate(bare_worklet_t *worklet);
-
-int
-bare_ipc_alloc(bare_ipc_t **result);
-
-int
-bare_ipc_init(bare_ipc_t *ipc, bare_worklet_t *worklet);
-
-void
-bare_ipc_destroy(bare_ipc_t *ipc);
-
-int
-bare_ipc_read(bare_ipc_t *ipc, void **data, size_t *len);
-
-int
-bare_ipc_write(bare_ipc_t *ipc, const void *data, size_t len);
-
-int
-bare_ipc_poll_alloc(bare_ipc_poll_t **result);
-
-int
-bare_ipc_poll_init(bare_ipc_poll_t *poll, bare_ipc_t *ipc);
-
-void
-bare_ipc_poll_destroy(bare_ipc_poll_t *poll);
-
-void *
-bare_ipc_poll_get_data(bare_ipc_poll_t *poll);
-
-void
-bare_ipc_poll_set_data(bare_ipc_poll_t *poll, void *data);
-
-int
-bare_ipc_poll_start(bare_ipc_poll_t *poll, int events, bare_ipc_poll_cb cb);
-
-int
-bare_ipc_poll_stop(bare_ipc_poll_t *poll);
-}
-
-namespace facebook::react {
-
-namespace {
 
 struct BareKitBuffer : MutableBuffer {
   BareKitBuffer(size_t len) : data_(len) {}
@@ -178,8 +107,23 @@ struct BareKitBuffer : MutableBuffer {
     return data_.data();
   }
 
+  void
+  resize(size_t len) {
+    data_.resize(len);
+  }
+
 private:
   std::vector<uint8_t> data_;
+};
+
+// The lifecycle callbacks of a worklet run on its thread and may still fire
+// while it tears down after being destroyed, so they hold on to their own
+// state until the worklet exits.
+struct BareKitEvents {
+  AsyncCallback<int> on_suspend;
+  AsyncCallback<int> on_wakeup;
+  AsyncCallback<> on_idle;
+  AsyncCallback<> on_resume;
 };
 
 struct BareKitWorklet : HostObject {
@@ -189,10 +133,8 @@ struct BareKitWorklet : HostObject {
 
   AsyncCallback<> on_terminate;
   AsyncCallback<bool, bool> on_poll;
-  AsyncCallback<int> on_suspend;
-  AsyncCallback<int> on_wakeup;
-  AsyncCallback<> on_idle;
-  AsyncCallback<> on_resume;
+
+  std::shared_ptr<BareKitEvents> events;
 
   bool started = false;
   bool terminated = false;
@@ -205,8 +147,7 @@ struct BareKitWorklet : HostObject {
   BareKitWorklet(
     Runtime &rt,
     std::optional<String> id,
-    int memoryLimit,
-    std::optional<String> assets,
+    size_t memoryLimit,
     Function &&on_terminate,
     Function &&on_poll,
     Function &&on_suspend,
@@ -217,51 +158,64 @@ struct BareKitWorklet : HostObject {
   )
       : on_terminate(rt, std::move(on_terminate), jsInvoker),
         on_poll(rt, std::move(on_poll), jsInvoker),
-        on_suspend(rt, std::move(on_suspend), jsInvoker),
-        on_wakeup(rt, std::move(on_wakeup), jsInvoker),
-        on_idle(rt, std::move(on_idle), jsInvoker),
-        on_resume(rt, std::move(on_resume), jsInvoker) {
+        events(std::make_shared<BareKitEvents>(BareKitEvents{
+          AsyncCallback<int>(rt, std::move(on_suspend), jsInvoker),
+          AsyncCallback<int>(rt, std::move(on_wakeup), jsInvoker),
+          AsyncCallback<>(rt, std::move(on_idle), jsInvoker),
+          AsyncCallback<>(rt, std::move(on_resume), jsInvoker),
+        })) {
     int err;
+
+    load(rt);
 
     if (id) this->id = id->utf8(rt);
 
-    err = bare_worklet_alloc(&worklet);
+    bare_worklet_options_t options = {.version = 0, .memory_limit = memoryLimit};
+
+#if defined(__ANDROID__)
+    JNIEnv *env = facebook::jni::Environment::current();
+
+    JavaVM *vm;
+    err = env->GetJavaVM(&vm);
     assert(err == 0);
 
-    err = bare_ipc_alloc(&ipc);
-    assert(err == 0);
+    jobject context = nullptr;
 
-    err = bare_ipc_poll_alloc(&poll);
-    assert(err == 0);
+    jclass provider = env->FindClass("to/holepunch/bare/kit/react/BareKitProvider");
 
-    bare_ipc_poll_set_data(poll, this);
+    if (provider != nullptr) {
+      jmethodID get_application_context = env->GetStaticMethodID(provider, "getApplicationContext", "()Landroid/content/Context;");
 
-    bare_worklet_options_t options;
+      if (get_application_context != nullptr) context = env->CallStaticObjectMethod(provider, get_application_context);
 
-    options.memory_limit = static_cast<size_t>(memoryLimit);
-
-    if (assets) {
-      options.assets = jsi_to_string_owned(rt, assets.value());
-    } else {
-      options.assets = nullptr;
+      env->DeleteLocalRef(provider);
     }
 
-    err = bare_worklet_init(worklet, &options);
+    if (context == nullptr) {
+      env->ExceptionClear();
+
+      throw JSError(rt, "The application context could not be found");
+    }
+
+    options.platform.android.jvm = vm;
+    options.platform.android.context = context;
+#endif
+
+    err = kit.bare_worklet_create(&options, &worklet);
+
+#if defined(__ANDROID__)
+    env->DeleteLocalRef(context);
+#endif
+
+    if (err < 0) throw JSError(rt, "Worklet could not be created");
+
+    err = kit.bare_ipc_create(worklet, &ipc);
     assert(err == 0);
 
-    err = bare_worklet_on_suspend(worklet, on_suspend_, this);
+    err = kit.bare_ipc_poll_create(ipc, &poll);
     assert(err == 0);
 
-    err = bare_worklet_on_wakeup(worklet, on_wakeup_, this);
-    assert(err == 0);
-
-    err = bare_worklet_on_idle(worklet, on_idle_, this);
-    assert(err == 0);
-
-    err = bare_worklet_on_resume(worklet, on_resume_, this);
-    assert(err == 0);
-
-    free(const_cast<char *>(options.assets));
+    kit.bare_ipc_poll_set_data(poll, this);
   }
 
   ~BareKitWorklet() {
@@ -269,14 +223,50 @@ struct BareKitWorklet : HostObject {
   }
 
   void
-  start() {
+  start(Runtime &rt, String filename, const void *source, size_t len, Array args) {
     int err;
 
-    err = bare_ipc_init(ipc, worklet);
+    if (started || terminated) return;
+
+    // Released once the worklet exits, which it only does once started.
+    auto data = new std::shared_ptr<BareKitEvents>(events);
+
+    err = kit.bare_worklet_on_suspend(worklet, on_suspend_, data);
     assert(err == 0);
 
-    err = bare_ipc_poll_init(poll, ipc);
+    err = kit.bare_worklet_on_wakeup(worklet, on_wakeup_, data);
     assert(err == 0);
+
+    err = kit.bare_worklet_on_idle(worklet, on_idle_, data);
+    assert(err == 0);
+
+    err = kit.bare_worklet_on_resume(worklet, on_resume_, data);
+    assert(err == 0);
+
+    err = kit.bare_worklet_on_exit(worklet, on_exit_, data);
+    assert(err == 0);
+
+    auto string = filename.utf8(rt);
+
+    auto argv = std::vector<std::string>(args.size(rt));
+
+    for (size_t i = 0, n = argv.size(); i < n; i++) {
+      argv[i] = args.getValueAtIndex(rt, i).getString(rt).utf8(rt);
+    }
+
+    auto pointers = std::vector<const char *>(argv.size());
+
+    std::transform(argv.begin(), argv.end(), pointers.begin(), [](const std::string &arg) { return arg.c_str(); });
+
+    err = kit.bare_worklet_start(worklet, string.c_str(), source, len, int(pointers.size()), pointers.data());
+
+    if (err < 0) {
+      delete data;
+
+      throw JSError(rt, "Worklet could not be started");
+    }
+
+    started = true;
 
     if (id) {
       std::unique_lock guard(lock);
@@ -293,132 +283,42 @@ struct BareKitWorklet : HostObject {
     }
   }
 
-  void
-  start(Runtime &rt, Object handle, String filename, Array args) {
-    int err;
-
-    if (started || terminated) return;
-
-    started = true;
-
-    auto string = jsi_to_string_owned(rt, filename);
-
-    auto argv = std::vector<const char *>(args.size(rt));
-
-    for (size_t i = 0, n = argv.size(); i < n; i++) {
-      argv[i] = jsi_to_string_owned(rt, args.getValueAtIndex(rt, i).getString(rt));
-    }
-
-    err = bare_worklet_start(worklet, string, nullptr, argv.size(), argv.data());
-    assert(err == 0);
-
-    free(string);
-
-    for (size_t i = 0, n = argv.size(); i < n; i++) {
-      free(const_cast<char *>(argv[i]));
-    }
-
-    start();
-  }
-
-  void
-  start(Runtime &rt, Object handle, String filename, Object source, size_t offset, size_t length, Array args) {
-    int err;
-
-    if (started || terminated) return;
-
-    started = true;
-
-    auto string = jsi_to_string_owned(rt, filename);
-
-    auto buffer = jsi_to_buffer(rt, source.getArrayBuffer(rt), offset, length);
-
-    auto argv = std::vector<const char *>(args.size(rt));
-
-    for (size_t i = 0, n = argv.size(); i < n; i++) {
-      argv[i] = jsi_to_string_owned(rt, args.getValueAtIndex(rt, i).getString(rt));
-    }
-
-    err = bare_worklet_start(worklet, string, &buffer, argv.size(), argv.data());
-    assert(err == 0);
-
-    free(string);
-
-    for (size_t i = 0, n = argv.size(); i < n; i++) {
-      free(const_cast<char *>(argv[i]));
-    }
-
-    start();
-  }
-
-  void
-  start(Runtime &rt, Object handle, String filename, String source, Array args) {
-    int err;
-
-    if (started || terminated) return;
-
-    started = true;
-
-    auto string = jsi_to_string_owned(rt, filename);
-
-    auto buffer = jsi_to_buffer_owned(rt, source);
-
-    auto argv = std::vector<const char *>(args.size(rt));
-
-    for (size_t i = 0, n = argv.size(); i < n; i++) {
-      argv[i] = jsi_to_string_owned(rt, args.getValueAtIndex(rt, i).getString(rt));
-    }
-
-    err = bare_worklet_start(worklet, string, &buffer, argv.size(), argv.data());
-    assert(err == 0);
-
-    free(buffer.base);
-
-    free(string);
-
-    for (size_t i = 0, n = argv.size(); i < n; i++) {
-      free(const_cast<char *>(argv[i]));
-    }
-
-    start();
-  }
-
   std::optional<Object>
-  read(Runtime &rt, Object handle) {
-    int err;
+  read(Runtime &rt) {
+    if (terminated) return std::nullopt;
 
-    if (!started || terminated) return std::nullopt;
+    auto buffer = std::make_shared<BareKitBuffer>(BARE_IPC_READ_BUFFER_SIZE);
 
-    uint8_t *data;
-    size_t len;
-    err = bare_ipc_read(ipc, reinterpret_cast<void **>(&data), &len);
-    assert(err == 0 || err == bare_ipc_would_block);
+    int len = kit.bare_ipc_read(ipc, buffer->data(), buffer->size());
 
-    if (err == bare_ipc_would_block) {
-      return std::nullopt;
-    }
+    if (len == bare_ipc_would_block) return std::nullopt;
 
-    auto buffer = std::make_shared<BareKitBuffer>(len);
+    assert(len >= 0);
 
-    std::copy(data, data + len, buffer->data());
+    buffer->resize(size_t(len));
 
     return ArrayBuffer(rt, buffer);
   }
 
   int
-  write(Runtime &rt, Object handle, Object data, size_t offset, size_t length) {
-    int err;
+  write(Runtime &rt, Object data, size_t offset, size_t length) {
+    if (terminated) return -1;
 
-    auto buffer = jsi_to_buffer(rt, data.getArrayBuffer(rt), offset, length);
+    auto base = data.getArrayBuffer(rt).data(rt) + offset;
 
-    err = bare_ipc_write(ipc, buffer.base, buffer.len);
-    assert(err >= 0 || err == bare_ipc_would_block);
+    int len = kit.bare_ipc_write(ipc, base, length);
 
-    if (err == bare_ipc_would_block) {
-      return 0;
-    }
+    if (len == bare_ipc_would_block) return 0;
+    if (len == bare_ipc_error) return -1;
 
-    return err;
+    return len;
+  }
+
+  void
+  end() {
+    if (terminated) return;
+
+    kit.bare_ipc_end(ipc);
   }
 
   void
@@ -433,48 +333,37 @@ struct BareKitWorklet : HostObject {
     if (writable) events |= bare_ipc_writable;
 
     if (events) {
-      err = bare_ipc_poll_start(poll, events, on_poll_);
+      err = kit.bare_ipc_poll_start(poll, events, on_poll_);
       assert(err == 0);
     } else {
-      err = bare_ipc_poll_stop(poll);
+      err = kit.bare_ipc_poll_stop(poll);
       assert(err == 0);
     }
   }
 
   void
   suspend(int linger) {
-    int err;
+    if (terminated) return;
 
-    if (!started || terminated) return;
-
-    err = bare_worklet_suspend(worklet, linger);
-    assert(err == 0);
+    kit.bare_worklet_suspend(worklet, linger);
   }
 
   void
   resume() {
-    int err;
+    if (terminated) return;
 
-    if (!started || terminated) return;
-
-    err = bare_worklet_resume(worklet);
-    assert(err == 0);
+    kit.bare_worklet_resume(worklet);
   }
 
   void
   wakeup(int deadline) {
-    int err;
+    if (terminated) return;
 
-    if (!started || terminated) return;
-
-    err = bare_worklet_wakeup(worklet, int(deadline));
-    assert(err == 0);
+    kit.bare_worklet_wakeup(worklet, deadline);
   }
 
   void
   terminate() {
-    int err;
-
     if (terminated) return;
 
     if (id) {
@@ -487,20 +376,9 @@ struct BareKitWorklet : HostObject {
 
     terminated = true;
 
-    if (started) {
-      err = bare_worklet_terminate(worklet);
-      assert(err == 0);
-
-      bare_ipc_poll_destroy(poll);
-      bare_ipc_destroy(ipc);
-
-      free(ipc);
-      free(poll);
-    }
-
-    bare_worklet_destroy(worklet);
-
-    free(worklet);
+    kit.bare_ipc_poll_destroy(poll);
+    kit.bare_ipc_destroy(ipc);
+    kit.bare_worklet_destroy(worklet);
 
     worklet = nullptr;
     ipc = nullptr;
@@ -510,47 +388,49 @@ struct BareKitWorklet : HostObject {
 private:
   static void
   on_poll_(bare_ipc_poll_t *poll, int events) {
-    auto worklet = static_cast<BareKitWorklet *>(bare_ipc_poll_get_data(poll));
+    auto worklet = static_cast<BareKitWorklet *>(kit.bare_ipc_poll_get_data(poll));
 
     worklet->on_poll.call([=](Runtime &rt, Function &function) {
       function.call(rt, (events & bare_ipc_readable) != 0, (events & bare_ipc_writable) != 0);
     });
   }
 
-  static void
-  on_suspend_(bare_t *bare, int linger, void *data) {
-    auto worklet = static_cast<BareKitWorklet *>(data);
+  static BareKitEvents &
+  events_from(void *data) {
+    return **static_cast<std::shared_ptr<BareKitEvents> *>(data);
+  }
 
-    worklet->on_suspend.call([=](Runtime &rt, Function &function) {
+  static void
+  on_suspend_(int linger, void *data) {
+    events_from(data).on_suspend.call([=](Runtime &rt, Function &function) {
       function.call(rt, linger);
     });
   }
 
   static void
-  on_wakeup_(bare_t *bare, int deadline, void *data) {
-    auto worklet = static_cast<BareKitWorklet *>(data);
-
-    worklet->on_wakeup.call([=](Runtime &rt, Function &function) {
+  on_wakeup_(int deadline, void *data) {
+    events_from(data).on_wakeup.call([=](Runtime &rt, Function &function) {
       function.call(rt, deadline);
     });
   }
 
   static void
-  on_idle_(bare_t *bare, void *data) {
-    auto worklet = static_cast<BareKitWorklet *>(data);
-
-    worklet->on_idle.call([=](Runtime &rt, Function &function) {
+  on_idle_(void *data) {
+    events_from(data).on_idle.call([=](Runtime &rt, Function &function) {
       function.call(rt);
     });
   }
 
   static void
-  on_resume_(bare_t *bare, void *data) {
-    auto worklet = static_cast<BareKitWorklet *>(data);
-
-    worklet->on_resume.call([=](Runtime &rt, Function &function) {
+  on_resume_(void *data) {
+    events_from(data).on_resume.call([=](Runtime &rt, Function &function) {
       function.call(rt);
     });
+  }
+
+  static void
+  on_exit_(int exit_code, void *data) {
+    delete static_cast<std::shared_ptr<BareKitEvents> *>(data);
   }
 };
 
@@ -567,7 +447,6 @@ BareKitModule::init(
   Runtime &rt,
   std::optional<String> id,
   double memoryLimit,
-  std::optional<String> assets,
   Function on_terminate,
   Function on_poll,
   Function on_suspend,
@@ -578,8 +457,7 @@ BareKitModule::init(
   auto worklet = std::make_shared<BareKitWorklet>(
     rt,
     std::move(id),
-    int(memoryLimit),
-    std::move(assets),
+    size_t(memoryLimit),
     std::move(on_terminate),
     std::move(on_poll),
     std::move(on_suspend),
@@ -603,35 +481,46 @@ void
 BareKitModule::startFile(Runtime &rt, Object handle, String filename, Array args) {
   auto worklet = handle.getHostObject<BareKitWorklet>(rt);
 
-  worklet->start(rt, std::move(handle), std::move(filename), std::move(args));
+  worklet->start(rt, std::move(filename), nullptr, 0, std::move(args));
 }
 
 void
 BareKitModule::startBytes(Runtime &rt, Object handle, String filename, Object source, double offset, double length, Array args) {
   auto worklet = handle.getHostObject<BareKitWorklet>(rt);
 
-  worklet->start(rt, std::move(handle), std::move(filename), std::move(source), size_t(offset), size_t(length), std::move(args));
+  auto base = source.getArrayBuffer(rt).data(rt) + size_t(offset);
+
+  worklet->start(rt, std::move(filename), base, size_t(length), std::move(args));
 }
 
 void
 BareKitModule::startUTF8(Runtime &rt, Object handle, String filename, String source, Array args) {
   auto worklet = handle.getHostObject<BareKitWorklet>(rt);
 
-  worklet->start(rt, std::move(handle), std::move(filename), std::move(source), std::move(args));
+  auto utf8 = source.utf8(rt);
+
+  worklet->start(rt, std::move(filename), utf8.data(), utf8.size(), std::move(args));
 }
 
 std::optional<Object>
 BareKitModule::read(Runtime &rt, Object handle) {
   auto worklet = handle.getHostObject<BareKitWorklet>(rt);
 
-  return worklet->read(rt, std::move(handle));
+  return worklet->read(rt);
 }
 
 double
 BareKitModule::write(Runtime &rt, Object handle, Object data, double offset, double length) {
   auto worklet = handle.getHostObject<BareKitWorklet>(rt);
 
-  return double(worklet->write(rt, std::move(handle), std::move(data), size_t(offset), size_t(length)));
+  return double(worklet->write(rt, std::move(data), size_t(offset), size_t(length)));
+}
+
+void
+BareKitModule::end(Runtime &rt, Object handle) {
+  auto worklet = handle.getHostObject<BareKitWorklet>(rt);
+
+  worklet->end();
 }
 
 void

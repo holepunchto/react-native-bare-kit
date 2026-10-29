@@ -54,7 +54,7 @@ class BareKitIPC extends Duplex {
     const data = NativeBareKit.read(this._worklet._handle)
 
     if (data) {
-      this.push(new Uint8Array(data))
+      this.push(data.byteLength === 0 ? null : new Uint8Array(data))
       cb(null)
     } else {
       this._pendingRead = cb
@@ -71,10 +71,16 @@ class BareKitIPC extends Duplex {
     )
 
     if (written === data.byteLength) cb(null)
+    else if (written < 0) cb(new Error('IPC has been closed'))
     else {
       this._pendingWrite = [data.subarray(written), cb]
       this._update()
     }
+  }
+
+  _final(cb) {
+    NativeBareKit.end(this._worklet._handle)
+    cb(null)
   }
 
   _continueOpen(err) {
@@ -117,7 +123,7 @@ class BareKitWorklet extends EventEmitter {
       throw new TypeError('ID must be a string. Received type ' + typeof id + ' (' + id + ')')
     }
 
-    const { memoryLimit = 0, assets = null } = opts
+    const { memoryLimit = 0 } = opts
 
     if (typeof memoryLimit !== 'number') {
       throw new TypeError(
@@ -126,12 +132,6 @@ class BareKitWorklet extends EventEmitter {
           ' (' +
           memoryLimit +
           ')'
-      )
-    }
-
-    if (typeof assets !== 'string' && assets !== null) {
-      throw new TypeError(
-        'Asset path must be a string. Received type ' + typeof assets + ' (' + assets + ')'
       )
     }
 
@@ -145,7 +145,6 @@ class BareKitWorklet extends EventEmitter {
     this._handle = NativeBareKit.init(
       id,
       memoryLimit,
-      assets,
       terminate,
       this._ipc._poll,
       this._onsuspend.bind(this),
@@ -280,7 +279,7 @@ class BareKitWorklet extends EventEmitter {
 
   static wakeup(deadline) {
     for (const worklet of this._worklets) {
-      worklet.deadline(deadline)
+      worklet.wakeup(deadline)
     }
   }
 
