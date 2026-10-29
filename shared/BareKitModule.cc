@@ -197,8 +197,8 @@ struct BareKitWorklet : HostObject {
       throw JSError(rt, "The application context could not be found");
     }
 
-    options.android.jvm = vm;
-    options.android.context = context;
+    options.platform.android.jvm = vm;
+    options.platform.android.context = context;
 #endif
 
     err = kit.bare_worklet_create(&options, &worklet);

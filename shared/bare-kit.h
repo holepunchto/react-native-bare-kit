@@ -48,27 +48,38 @@ struct bare_worklet_options_s {
   size_t memory_limit;
 
   /**
-   * Options that only apply on Android, and are ignored on other platforms.
+   * Options that are specific to a platform. Only the member of the platform
+   * that the worklet runs on is read. The size of the union is fixed by
+   * `reserved`, so that fields added to the end of the options keep their
+   * offsets as the members of the union grow.
    *
    * @since 0
    */
-  struct {
+  union {
     /**
-     * The Java virtual machine, as a `JavaVM *`, which is published to the
-     * addons of the worklet under `bare.android.jvm.v1`. By default, the virtual
-     * machine that loaded Bare Kit through `JNI_OnLoad()` is used, so it must be
-     * given if Bare Kit is loaded by other means. There is only one per process.
+     * Options that apply on Android.
      */
-    void *jvm;
+    struct {
+      /**
+       * The Java virtual machine, as a `JavaVM *`, which is published to the
+       * addons of the worklet under `bare.android.jvm.v1`. By default, the
+       * virtual machine that loaded Bare Kit through `JNI_OnLoad()` is used, so
+       * it must be given if Bare Kit is loaded by other means. There is only one
+       * per process.
+       */
+      void *jvm;
 
-    /**
-     * The application context, as a JNI reference to an `android.content.Context`,
-     * which is published to the addons of the worklet under
-     * `bare.android.context.v1`. The worklet takes a global reference of its
-     * own, so the reference need only be valid for the call.
-     */
-    void *context;
-  } android;
+      /**
+       * The application context, as a JNI reference to an
+       * `android.content.Context`, which is published to the addons of the
+       * worklet under `bare.android.context.v1`. The worklet takes a global
+       * reference of its own, so the reference need only be valid for the call.
+       */
+      void *context;
+    } android;
+
+    void *reserved[8];
+  } platform;
 };
 
 /**
@@ -140,14 +151,13 @@ bare_worklet_set_data(bare_worklet_t *worklet, void *data);
  * be read at runtime. The arguments need only remain valid until this function
  * returns.
  *
- * In an application, a relative `filename` names a resource of the application.
- * On Apple platforms, it resolves against the resources of the application
- * bundle, which for an application extension is the bundle that contains it.
- * On Android, where resources live in the APK, it resolves against the code
- * cache directory of the application context, which must then be given. The
- * resources listed in `<name>.assets`, one `/<path>` per line, are extracted to
- * `<name>/<path>` before `<name>.bundle` first runs, and the bundle itself is
- * read from the APK if `source` is `NULL`.
+ * A relative `filename` names a resource of the application. On Apple
+ * platforms, it resolves against the resources of the application bundle,
+ * which extensions share with their application. On Android, it resolves
+ * against the code cache directory of the application context, which must then
+ * be given. The resources listed in `<name>.assets`, one `/<path>` per line,
+ * are extracted there from `<name>/<path>` in the APK before `<name>.bundle`
+ * first runs, and a `NULL` source is read from the APK.
  */
 int
 bare_worklet_start(bare_worklet_t *worklet, const char *filename, const void *source, size_t len, int argc, const char *argv[]);
