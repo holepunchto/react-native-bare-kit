@@ -383,6 +383,8 @@ struct BareKitWorklet : HostObject {
     worklet = nullptr;
     ipc = nullptr;
     poll = nullptr;
+
+    events.reset();
   }
 
 private:
