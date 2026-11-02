@@ -6,6 +6,8 @@
 npm i react-native-bare-kit
 ```
 
+Bare Kit isn't included. The application brings it along with the addons and assets of its worklets, so that other code, such as a notification service extension, can share them. See [Linking addons and assets](#linking-addons-and-assets).
+
 ## Usage
 
 ```js
@@ -15,10 +17,8 @@ import b4a from 'b4a'
 const worklet = new Worklet()
 
 const source = `\
-const { IPC } = BareKit
-
-IPC.on('data', (data) => console.log(data.toString()))
-IPC.write(Buffer.from('Hello from Bare!'))
+Bare.IPC.on('data', (data) => console.log(data.toString()))
+Bare.IPC.write(Buffer.from('Hello from Bare!'))
 `
 
 worklet.start('/app.js', source)
@@ -29,56 +29,45 @@ IPC.on('data', (data) => console.log(b4a.toString(data)))
 IPC.write(b4a.from('Hello from React Native!'))
 ```
 
-Alternatively to load from a bundle:
-
-```js
-import { Worklet } from 'react-native-bare-kit'
-
-// Bundle output by `bare-pack`
-// Extension can be .bundle, .js, .cjs, .mjs
-import bundle from './my.bundle.js'
-
-const worklet = new Worklet()
-// First arg (filename)'s extension *must* be .bundle
-worklet.start('/app.bundle', source)
-
-// [...]
-```
-
 Refer to <https://github.com/holepunchto/bare-expo> for an example of using the library in an Expo application.
 
-### Linking native addons
+### Packing workers
 
-Native addons used by the worklet are not linked automatically. Applications must link them into their native projects themselves, such as by using <https://github.com/holepunchto/bare-link>. Given the entry point of the worklet, `bare-link` links the addons loaded by its module graph:
+Pack a worker and its dependencies into a package with <https://github.com/holepunchto/bare-stow> and <https://github.com/holepunchto/bare-stow-target-react-native>. The worker exports a `start()` function that receives the IPC stream:
 
-```console
-bare-link --preset ios --out ios/addons worklet.js
-bare-link --preset android --out android/app/src/main/jniLibs worklet.js
-```
-
-On iOS, the resulting `.xcframework` bundles must be embedded in the application target. On Android, the resulting `.so` libraries must be included in the `jniLibs` of the application and the resulting `.jar` libraries, if any, added as dependencies.
-
-As a convenience, the library includes designated directories that are already wired into its native projects. Any `.xcframework` bundle in `ios/addons` and any `.so` or `.jar` library in `android/src/main/addons` of the library will be included in the build without further configuration:
-
-```console
-bare-link --preset ios --out node_modules/react-native-bare-kit/ios/addons worklet.js
-bare-link --preset android --out node_modules/react-native-bare-kit/android/src/main/addons worklet.js
-```
-
-As these directories live within `node_modules`, they are cleared whenever the library is reinstalled. Consider running the commands from a `postinstall` script of the application:
-
-```json
-{
-  "scripts": {
-    "postinstall": "npm run link:ios && npm run link:android",
-    "link:ios": "bare-link --preset ios --out node_modules/react-native-bare-kit/ios/addons worklet.js",
-    "link:android": "bare-link --preset android --out node_modules/react-native-bare-kit/android/src/main/addons worklet.js"
-  },
-  "devDependencies": {
-    "bare-link": "^4.0.1"
-  }
+```js
+module.exports = function start(ipc) {
+  ipc.on('data', (data) => ipc.write(data))
 }
 ```
+
+```console
+bare-stow pack --target react-native --out ./worker worker.js
+```
+
+Add the package as a dependency of the application and start the worker in a worklet:
+
+```js
+import worker from 'worker'
+
+const { ipc } = await worker.start()
+
+ipc.on('data', (data) => console.log(b4a.toString(data)))
+ipc.write(b4a.from('Hello from React Native!'))
+```
+
+The package leaves out the addons and assets of the worker, so link them as described below.
+
+### Linking addons and assets
+
+Link the addons and assets of all of the worklets of the application once with <https://github.com/holepunchto/bare-stow>. It writes a Swift package and a Gradle module, which also bring along Bare Kit:
+
+```console
+bare-stow link --target bare-kit --language swift --out ios/BareKitResources worklet.js
+bare-stow link --target bare-kit --language kotlin --language-option package=com.example.addons --out android/bare-kit-resources worklet.js
+```
+
+Add the Swift package and its `bare-stow` folder to the application target, and include the Gradle module in the application. In an Expo application, list the workers in the `workers` option of <https://github.com/holepunchto/expo-bare-kit> instead.
 
 ### Logging
 

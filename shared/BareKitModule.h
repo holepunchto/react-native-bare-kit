@@ -16,7 +16,6 @@ public:
     jsi::Runtime &rt,
     std::optional<jsi::String> id,
     double memoryLimit,
-    std::optional<jsi::String> assets,
     jsi::Function on_terminate,
     jsi::Function on_poll,
     jsi::Function on_suspend,
@@ -42,6 +41,9 @@ public:
 
   double
   write(jsi::Runtime &rt, jsi::Object handle, jsi::Object data, double offset, double length);
+
+  void
+  end(jsi::Runtime &rt, jsi::Object handle);
 
   void
   suspend(jsi::Runtime &rt, jsi::Object handle, double linger);

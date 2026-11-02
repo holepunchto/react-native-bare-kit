@@ -2,14 +2,6 @@ cmake_minimum_required(VERSION 3.22)
 
 project(react-native-bare-kit)
 
-add_library(bare-kit SHARED IMPORTED)
-
-set_target_properties(
-  bare-kit
-  PROPERTIES
-  IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/libs/bare-kit/jni/${ANDROID_ABI}/libbare-kit.so"
-)
-
 add_library(react-native-bare-kit STATIC)
 
 set_target_properties(
@@ -24,6 +16,7 @@ target_sources(
   PRIVATE
     ../shared/BareKitModule.cc
     ../shared/BareKitModule.h
+    ../shared/bare-kit.h
 )
 
 target_include_directories(
@@ -34,6 +27,6 @@ target_include_directories(
 
 target_link_libraries(
   react-native-bare-kit
-  bare-kit
+  fbjni::fbjni
   react_codegen_BareKitSpec
 )

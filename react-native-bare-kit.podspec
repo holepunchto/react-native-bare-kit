@@ -16,7 +16,7 @@ Pod::Spec.new do |s|
 
   s.source_files = "ios/**/*.{h,mm}", "shared/**/*.{h,cc}"
 
-  s.vendored_frameworks = "ios/*.xcframework", "ios/addons/*.xcframework"
+  s.private_header_files = "shared/bare-kit.h"
 
   s.header_dir = "BareKit"
 
