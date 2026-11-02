@@ -56,7 +56,7 @@ ipc.on('data', (data) => console.log(b4a.toString(data)))
 ipc.write(b4a.from('Hello from React Native!'))
 ```
 
-The package leaves out the addons and assets of the worker, so link them as described below.
+The package leaves out the addons and assets of the worker, so link them as described below. In an Expo application, list the workers in the `workers` option of <https://github.com/holepunchto/expo-bare-kit> instead, which packs them whenever Metro bundles the application.
 
 ### Linking addons and assets
 
