@@ -19,6 +19,8 @@ class BareKitIPC extends Duplex {
     this._pendingOpen = null
     this._pendingRead = null
     this._pendingWrite = null
+
+    this._ended = false
   }
 
   get worklet() {
@@ -37,6 +39,8 @@ class BareKitIPC extends Duplex {
   }
 
   _update() {
+    if (this._worklet.terminated) return
+
     NativeBareKit.update(
       this._worklet._handle,
       this._pendingRead !== null,
@@ -54,7 +58,7 @@ class BareKitIPC extends Duplex {
     const data = NativeBareKit.read(this._worklet._handle)
 
     if (data) {
-      this.push(data.byteLength === 0 ? null : new Uint8Array(data))
+      this._push(data)
       cb(null)
     } else {
       this._pendingRead = cb
@@ -63,6 +67,8 @@ class BareKitIPC extends Duplex {
   }
 
   _write(data, cb) {
+    if (this._worklet.terminated) return cb(new Error('IPC has been closed'))
+
     const written = NativeBareKit.write(
       this._worklet._handle,
       data.buffer,
@@ -79,8 +85,44 @@ class BareKitIPC extends Duplex {
   }
 
   _final(cb) {
-    NativeBareKit.end(this._worklet._handle)
+    if (!this._worklet.terminated) NativeBareKit.end(this._worklet._handle)
     cb(null)
+  }
+
+  _push(data) {
+    if (data.byteLength === 0) {
+      this._ended = true
+      this.push(null)
+    } else {
+      this.push(new Uint8Array(data))
+    }
+  }
+
+  // The worklet has exited and its IPC has reached end-of-stream, so whatever
+  // is left is read now, ignoring backpressure, before it is released.
+  _drain() {
+    while (!this._ended && !this.destroying) {
+      const data = NativeBareKit.read(this._worklet._handle)
+      if (data === null) break
+      this._push(data)
+    }
+
+    if (!this._ended) {
+      this._ended = true
+      this.push(null)
+    }
+
+    if (this._pendingRead !== null) {
+      const cb = this._pendingRead
+      this._pendingRead = null
+      cb(null)
+    }
+
+    if (this._pendingWrite !== null) {
+      const [, cb] = this._pendingWrite
+      this._pendingWrite = null
+      cb(new Error('IPC has been closed'))
+    }
   }
 
   _continueOpen(err) {
@@ -138,6 +180,7 @@ class BareKitWorklet extends EventEmitter {
     super()
 
     this._state = 0
+    this._exitCode = null
     this._ipc = new BareKitIPC(this)
 
     const terminate = this.terminate.bind(this)
@@ -150,7 +193,8 @@ class BareKitWorklet extends EventEmitter {
       this._onsuspend.bind(this),
       this._onwakeup.bind(this),
       this._onidle.bind(this),
-      this._onresume.bind(this)
+      this._onresume.bind(this),
+      this._onexit.bind(this)
     )
   }
 
@@ -305,10 +349,18 @@ class BareKitWorklet extends EventEmitter {
   }
 
   terminate() {
-    if (this.terminated) return
-
     this._ipc.destroy()
 
+    if (!this.terminated) this._release()
+  }
+
+  wait() {
+    if (this._exitCode !== null) return Promise.resolve(this._exitCode)
+
+    return new Promise((resolve) => this.once('exit', resolve))
+  }
+
+  _release() {
     if (this.started) NativeBareKit.terminate(this._handle)
 
     this._state |= constants.TERMINATED
@@ -339,6 +391,19 @@ class BareKitWorklet extends EventEmitter {
 
   _onresume() {
     this.emit('resume')
+  }
+
+  _onexit(code) {
+    if (!this.terminated) {
+      this._ipc._drain()
+      this._release()
+    }
+
+    // Deferred so that the data just drained from the IPC is emitted first.
+    queueMicrotask(() => {
+      this._exitCode = code
+      this.emit('exit', code)
+    })
   }
 }
 
