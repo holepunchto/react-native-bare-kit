@@ -11,6 +11,7 @@ export interface WorkletEvents extends EventMap {
   wakeup: [deadline: number]
   idle: []
   resume: []
+  exit: [code: number]
 }
 
 export interface WorkletOptions {
@@ -22,6 +23,9 @@ export class Worklet extends EventEmitter<WorkletEvents> {
   constructor(id: string, options?: WorkletOptions)
 
   readonly IPC: IPC
+  readonly started: boolean
+  readonly terminated: boolean
+  readonly suspended: boolean
 
   start(filename: string, args?: string[]): void
   start(filename: string, source: Uint8Array, args?: string[]): void
@@ -32,6 +36,7 @@ export class Worklet extends EventEmitter<WorkletEvents> {
   wakeup(deadline?: number): void
   update(state?: AppStateStatus): void
   terminate(): void
+  wait(): Promise<number>
 
   static suspend(linger?: number): void
   static resume(): void

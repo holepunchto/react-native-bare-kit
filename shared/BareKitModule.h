@@ -21,7 +21,8 @@ public:
     jsi::Function on_suspend,
     jsi::Function on_wakeup,
     jsi::Function on_idle,
-    jsi::Function on_resume
+    jsi::Function on_resume,
+    jsi::Function on_exit
   );
 
   void

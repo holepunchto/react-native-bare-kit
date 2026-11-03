@@ -124,6 +124,7 @@ struct BareKitEvents {
   AsyncCallback<int> on_wakeup;
   AsyncCallback<> on_idle;
   AsyncCallback<> on_resume;
+  AsyncCallback<int> on_exit;
 };
 
 struct BareKitWorklet : HostObject {
@@ -154,6 +155,7 @@ struct BareKitWorklet : HostObject {
     Function &&on_wakeup,
     Function &&on_idle,
     Function &&on_resume,
+    Function &&on_exit,
     std::shared_ptr<CallInvoker> jsInvoker
   )
       : on_terminate(rt, std::move(on_terminate), jsInvoker),
@@ -163,6 +165,7 @@ struct BareKitWorklet : HostObject {
           AsyncCallback<int>(rt, std::move(on_wakeup), jsInvoker),
           AsyncCallback<>(rt, std::move(on_idle), jsInvoker),
           AsyncCallback<>(rt, std::move(on_resume), jsInvoker),
+          AsyncCallback<int>(rt, std::move(on_exit), jsInvoker),
         })) {
     int err;
 
@@ -432,6 +435,10 @@ private:
 
   static void
   on_exit_(int exit_code, void *data) {
+    events_from(data).on_exit.call([=](Runtime &rt, Function &function) {
+      function.call(rt, exit_code);
+    });
+
     delete static_cast<std::shared_ptr<BareKitEvents> *>(data);
   }
 };
@@ -454,7 +461,8 @@ BareKitModule::init(
   Function on_suspend,
   Function on_wakeup,
   Function on_idle,
-  Function on_resume
+  Function on_resume,
+  Function on_exit
 ) {
   auto worklet = std::make_shared<BareKitWorklet>(
     rt,
@@ -466,6 +474,7 @@ BareKitModule::init(
     std::move(on_wakeup),
     std::move(on_idle),
     std::move(on_resume),
+    std::move(on_exit),
     jsInvoker_
   );
 

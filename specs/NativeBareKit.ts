@@ -10,7 +10,8 @@ export interface Spec extends TurboModule {
     onsuspend: (linger: number) => void,
     onwakeup: (deadline: number) => void,
     onidle: () => void,
-    onresume: () => void
+    onresume: () => void,
+    onexit: (code: number) => void
   ): Object
 
   startFile(handle: Object, filename: string, args: Array<string>): void
